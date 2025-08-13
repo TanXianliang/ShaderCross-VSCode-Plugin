@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Shader Cross Explorer</title>
+	<style>
+		:root {
+			--primary-bg: #1e1e1e;
+			--secondary-bg: #252526;
+			--tertiary-bg: #333333;
+			--text-color: #d4d4d4;
+			--text-muted: #8a8a8a;
+			--border-color: #333333;
+			--accent-color: #0078d7;
+			--hover-color: #005a9e;
+			--tree-line-color: #444444;
+		}
+
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+
+		body {
+			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+			background-color: var(--primary-bg);
+			color: var(--text-color);
+			height: 100vh;
+			display: flex;
+			flex-direction: column;
+		}
+
+		/* Header Styles */
+		.header {
+			padding: 8px 16px;
+			background-color: var(--secondary-bg);
+			border-bottom: 1px solid var(--border-color);
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+		}
+
+		.header-title {
+			font-size: 16px;
+			font-weight: 600;
+		}
+
+		.toolbar {
+			display: flex;
+			gap: 8px;
+		}
+
+		.toolbar-button {
+			background: none;
+			border: none;
+			color: var(--text-color);
+			cursor: pointer;
+			width: 28px;
+			height: 28px;
+			border-radius: 4px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.toolbar-button:hover {
+			background-color: var(--tertiary-bg);
+		}
+
+		/* Main Content Styles */
+		.main-content {
+			flex-grow: 1;
+			display: flex;
+			overflow: hidden;
+		}
+
+		/* Explorer Panel Styles */
+		.explorer-panel {
+			width: 250px;
+			background-color: var(--secondary-bg);
+			border-right: 1px solid var(--border-color);
+			display: flex;
+			flex-direction: column;
+		}
+
+		.explorer-header {
+			padding: 8px 12px;
+			font-weight: 600;
+			border-bottom: 1px solid var(--border-color);
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+		.explorer-tree {
+			flex-grow: 1;
+			overflow-y: auto;
+			padding: 8px 0;
+		}
+
+		/* Tree Item Styles */
+		.tree-item {
+			display: flex;
+			align-items: center;
+			padding: 4px 12px;
+			cursor: pointer;
+			position: relative;
+		}
+
+		.tree-item:hover {
+			background-color: var(--tertiary-bg);
+		}
+
+		.tree-item.active {
+			background-color: var(--accent-color);
+			color: white;
+		}
+
+		.tree-toggle {
+			width: 16px;
+			height: 16px;
+			margin-right: 4px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.tree-icon {
+			width: 16px;
+			height: 16px;
+			margin-right: 4px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		/* Content Area Styles */
+		.content-area {
+			flex-grow: 1;
+			display: flex;
+			flex-direction: column;
+			overflow: hidden;
+			padding: 16px;
+		}
+
+		.no-selection {
+			flex-grow: 1;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			color: var(--text-muted);
+		}
+
+		.no-selection svg {
+			width: 64px;
+			height: 64px;
+			margin-bottom: 16px;
+		}
+
+		/* Editor Styles */
+		.editor-container {
+			flex-grow: 1;
+			margin-top: 16px;
+			display: flex;
+			flex-direction: column;
+			background-color: var(--secondary-bg);
+			border-radius: 4px;
+			overflow: hidden;
+		}
+
+		.editor-header {
+			padding: 8px 12px;
+			border-bottom: 1px solid var(--border-color);
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+		.editor-filename {
+			font-size: 14px;
+			color: var(--text-muted);
+		}
+
+		.editor-content {
+			flex-grow: 1;
+			overflow: hidden;
+		}
+
+		textarea {
+			width: 100%;
+			height: 100%;
+			background-color: var(--secondary-bg);
+			color: var(--text-color);
+			border: none;
+			padding: 12px;
+			font-family: 'Consolas', 'Monaco', monospace;
+			resize: none;
+			outline: none;
+		}
+
+		/* Compiler Controls */
+		.compiler-controls {
+			margin-top: 16px;
+			display: flex;
+			gap: 10px;
+			align-items: center;
+		}
+
+		select {
+			background-color: var(--secondary-bg);
+			color: var(--text-color);
+			border: 1px solid var(--border-color);
+			border-radius: 4px;
+			padding: 6px 8px;
+		}
+
+		button {
+			background-color: var(--accent-color);
+			color: white;
+			border: none;
+			border-radius: 4px;
+			padding: 8px 16px;
+			cursor: pointer;
+			font-size: 14px;
+		}
+
+		button:hover {
+			background-color: var(--hover-color);
+		}
+
+		/* Output Panel */
+		.output-panel {
+			margin-top: 16px;
+			background-color: var(--secondary-bg);
+			border-radius: 4px;
+			border: 1px solid var(--border-color);
+			display: flex;
+			flex-direction: column;
+		}
+
+		.output-header {
+			padding: 8px 12px;
+			border-bottom: 1px solid var(--border-color);
+			font-weight: 600;
+		}
+
+		.output-content {
+			flex-grow: 1;
+			height: 150px;
+			overflow-y: auto;
+			padding: 12px;
+			font-family: 'Consolas', 'Monaco', monospace;
+			font-size: 14px;
+		}
+	</style>
+</head>
+<body>
+	<div class="header">
+		<div class="header-title">Shader Cross Explorer</div>
+		<div class="toolbar">
+			<button class="toolbar-button" title="New File"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg></button>
+			<button class="toolbar-button" title="Refresh"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v6h6"></path><path d="M21 12A9 9 0 0 0 6 5.3L3 8"></path><path d="M21 22v-6h-6"></path><path d="M3 12a9 9 0 0 0 15 6.7l3-2.7"></path></svg></button>
+		</div>
+	</div>
+
+	<div class="main-content">
+		<div class="explorer-panel">
+			<div class="explorer-header">
+				Shader Files
+				<button class="toolbar-button" title="Add Folder"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 19a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4l2 3h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg></button>
+			</div>
+			<div class="explorer-tree">
+				<div class="tree-item">
+					<div class="tree-toggle">
+						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+					</div>
+					<div class="tree-icon">
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+					</div>
+					Shaders
+				</div>
+				<div class="tree-item" style="padding-left: 28px;">
+					<div class="tree-icon">
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+					</div>
+					basic.vert
+				</div>
+				<div class="tree-item" style="padding-left: 28px;">
+					<div class="tree-icon">
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+					</div>
+					basic.frag
+				</div>
+				<div class="tree-item">
+					<div class="tree-toggle">
+						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+					</div>
+					<div class="tree-icon">
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+					</div>
+					Includes
+				</div>
+				<div class="tree-item" style="padding-left: 28px;">
+					<div class="tree-icon">
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+					</div>
+					utils.glsl
+				</div>
+			</div>
+		</div>
+
+		<div class="content-area">
+			<div class="no-selection" id="noSelection">
+				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+				<p>Select a shader file to edit</p>
+			</div>
+
+			<div class="editor-container" id="editorContainer" style="display: none;">
+				<div class="editor-header">
+					<div class="editor-filename" id="editorFilename"></div>
+				</div>
+				<div class="editor-content">
+					<textarea id="shaderCode" placeholder="Shader code will appear here..."></textarea>
+				</div>
+			</div>
+
+			<div class="compiler-controls" style="display: none;">
+				<select id="inputFormat">
+					<option value="glsl">GLSL</option>
+					<option value="hlsl">HLSL</option>
+					<option value="spirv">SPIR-V</option>
+				</select>
+				<span>→</span>
+				<select id="outputFormat">
+					<option value="glsl">GLSL</option>
+					<option value="hlsl">HLSL</option>
+					<option value="spirv">SPIR-V</option>
+				</select>
+				<button id="compileBtn">Compile</button>
+			</div>
+
+			<div class="output-panel" style="display: none;">
+				<div class="output-header">Output</div>
+				<div class="output-content" id="outputContent"></div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		// 这里添加交互逻辑
+// 由于 `vscode` 变量已在文件后面重复声明，为避免重复声明错误，移除此处声明
+// 若确实需要使用，可将后面的重复声明移除，仅保留此处声明
+
+		// 树项目点击事件
+		document.querySelectorAll('.tree-item').forEach(item => {
+			item.addEventListener('click', () => {
+				// 移除其他项目的活动状态
+				document.querySelectorAll('.tree-item').forEach(i => i.classList.remove('active'));
+				// 添加当前项目的活动状态
+				item.classList.add('active');
+
+				// 显示编辑器和编译控件
+				document.querySelector('.no-selection').style.display = 'none';
+				document.querySelector('.compiler-controls').style.display = 'flex';
+				document.querySelector('.output-panel').style.display = 'flex';
+
+				// 获取文件名
+				const fileName = item.textContent.trim();
+				// 在实际应用中，这里应该从服务器获取文件内容
+				// 为了演示，我们只是显示一个简单的消息
+				vscode.postMessage({
+					command: 'openFile',
+					fileName: fileName
+				});
+			});
+		});
+
+		// 编译按钮点击事件
+		document.getElementById('compileBtn').addEventListener('click', () => {
+			const inputFormat = document.getElementById('inputFormat').value;
+			const outputFormat = document.getElementById('outputFormat').value;
+			const activeFile = document.querySelector('.tree-item.active')?.textContent.trim() || '';
+
+			vscode.postMessage({
+				command: 'compileShader',
+				fileName: activeFile,
+				inputFormat: inputFormat,
+				outputFormat: outputFormat
+			});
+		});
+
+		// 监听来自VS Code的消息
+		window.addEventListener('message', event => {
+			const message = event.data;
+			switch (message.command) {
+				case 'fileContent':
+					// 更新编辑器内容
+					document.getElementById('noSelection').style.display = 'none';
+					document.getElementById('editorContainer').style.display = 'flex';
+					document.getElementById('editorFilename').textContent = message.fileName;
+					document.getElementById('shaderCode').value = message.content;
+					break;
+				case 'compileResult':
+					// 显示编译结果
+					document.getElementById('outputContent').textContent = message.result;
+					break;
+			}
+		});
+	</script>
+</body>
+</html>
+		
+		<div class="output" id="outputPanel">
+			Output will appear here...
+		</div>
+	</div>
+
+	<script>
+		const vscode = acquireVsCodeApi();
+
+		document.getElementById('compileBtn').addEventListener('click', () => {
+			const code = document.getElementById('shaderCode').value;
+			const inputFormat = document.getElementById('inputFormat').value;
+			const outputFormat = document.getElementById('outputFormat').value;
+
+			if (!code) {
+				document.getElementById('outputPanel').innerText = 'Please enter shader code first.';
+				return;
+			}
+
+			document.getElementById('outputPanel').innerText = `Compiling ${inputFormat} to ${outputFormat}...`;
+			vscode.postMessage({
+				command: 'compileShader',
+				code: code,
+				inputFormat: inputFormat,
+				outputFormat: outputFormat
+			});
+		});
+	</script>
+</body>
+</html>
