@@ -330,7 +330,7 @@
 			<div class="compiler-controls" style="display: none;">
 				<select id="inputFormat">
 					<option value="glsl">GLSL</option>
-					<option value="hlsl">HLSL</option>
+					<option value="hlsl" selected>HLSL</option>
 					<option value="spirv">SPIR-V</option>
 				</select>
 				<span>→</span>
@@ -351,8 +351,8 @@
 
 	<script>
 		// 这里添加交互逻辑
-// 由于 `vscode` 变量已在文件后面重复声明，为避免重复声明错误，移除此处声明
-// 若确实需要使用，可将后面的重复声明移除，仅保留此处声明
+		// 获取VS Code API
+		const vscode = acquireVsCodeApi();
 
 		// 树项目点击事件
 		document.querySelectorAll('.tree-item').forEach(item => {
@@ -408,36 +408,6 @@
 					document.getElementById('outputContent').textContent = message.result;
 					break;
 			}
-		});
-	</script>
-</body>
-</html>
-		
-		<div class="output" id="outputPanel">
-			Output will appear here...
-		</div>
-	</div>
-
-	<script>
-		const vscode = acquireVsCodeApi();
-
-		document.getElementById('compileBtn').addEventListener('click', () => {
-			const code = document.getElementById('shaderCode').value;
-			const inputFormat = document.getElementById('inputFormat').value;
-			const outputFormat = document.getElementById('outputFormat').value;
-
-			if (!code) {
-				document.getElementById('outputPanel').innerText = 'Please enter shader code first.';
-				return;
-			}
-
-			document.getElementById('outputPanel').innerText = `Compiling ${inputFormat} to ${outputFormat}...`;
-			vscode.postMessage({
-				command: 'compileShader',
-				code: code,
-				inputFormat: inputFormat,
-				outputFormat: outputFormat
-			});
 		});
 	</script>
 </body>
