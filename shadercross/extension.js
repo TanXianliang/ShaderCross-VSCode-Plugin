@@ -39,6 +39,9 @@ class ShaderCrossViewProvider {
 							webviewView
 						);
 						return;
+					case 'openFolderDialog':
+						this.openFolderDialog(webviewView);
+						return;
 				}
 			},
 			undefined,
@@ -112,6 +115,32 @@ Output:
 			}, 1000);
 		} catch (error) {
 			vscode.window.showErrorMessage(`Compilation failed: ${error.message}`);
+		}
+	}
+
+	// 打开文件夹选择对话框
+	openFolderDialog(webviewView) {
+		try {
+			// 显示文件夹选择对话框
+			vscode.window.showOpenDialog({
+				canSelectFiles: false,
+				canSelectFolders: true,
+				canSelectMany: false,
+				openLabel: 'Select Include Folder'
+			}).then(result => {
+				if (result && result[0]) {
+					// 获取选定的文件夹路径
+					const folderPath = result[0].fsPath;
+
+					// 发送选定的文件夹路径到webview
+					webviewView.webview.postMessage({
+						command: 'folderSelected',
+						path: folderPath
+					});
+				}
+			});
+		} catch (error) {
+			vscode.window.showErrorMessage(`Failed to open folder dialog: ${error.message}`);
 		}
 	}
 

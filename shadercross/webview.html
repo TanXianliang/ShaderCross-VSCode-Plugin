@@ -34,7 +34,7 @@
 
 		/* Header Styles */
 		.header {
-			padding: 8px 16px;
+			padding: 10px 16px;
 			background-color: var(--secondary-bg);
 			border-bottom: 1px solid var(--border-color);
 			display: flex;
@@ -49,7 +49,7 @@
 
 		.toolbar {
 			display: flex;
-			gap: 8px;
+			gap: 12px;
 		}
 
 		.toolbar-button {
@@ -86,7 +86,7 @@
 		}
 
 		.explorer-header {
-			padding: 8px 12px;
+			padding: 10px 12px;
 			font-weight: 600;
 			border-bottom: 1px solid var(--border-color);
 			display: flex;
@@ -97,14 +97,14 @@
 		.explorer-tree {
 			flex-grow: 1;
 			overflow-y: auto;
-			padding: 8px 0;
+			padding: 10px 0;
 		}
 
 		/* Tree Item Styles */
 		.tree-item {
 			display: flex;
 			align-items: center;
-			padding: 4px 12px;
+			padding: 6px 12px;
 			cursor: pointer;
 			position: relative;
 		}
@@ -163,7 +163,7 @@
 		/* Editor Styles */
 		.editor-container {
 			flex-grow: 1;
-			margin-top: 16px;
+			margin-top: 24px;
 			display: flex;
 			flex-direction: column;
 			background-color: var(--secondary-bg);
@@ -172,7 +172,7 @@
 		}
 
 		.editor-header {
-			padding: 8px 12px;
+			padding: 10px 12px;
 			border-bottom: 1px solid var(--border-color);
 			display: flex;
 			justify-content: space-between;
@@ -203,7 +203,7 @@
 
 		/* Compiler Controls */
 		.compiler-controls {
-			margin-top: 16px;
+			margin-top: 24px;
 			display: flex;
 			gap: 10px;
 			align-items: center;
@@ -214,7 +214,7 @@
 			color: var(--text-color);
 			border: 1px solid var(--border-color);
 			border-radius: 4px;
-			padding: 6px 8px;
+			padding: 8px 8px;
 		}
 
 		button {
@@ -233,7 +233,7 @@
 
 		/* Output Panel */
 		.output-panel {
-			margin-top: 16px;
+			margin-top: 24px;
 			background-color: var(--secondary-bg);
 			border-radius: 4px;
 			border: 1px solid var(--border-color);
@@ -262,15 +262,15 @@
 		<div class="header-title">Compiler Options</div>
 	</div>
 	<div class="compiler-options">
-		<div style="display: flex; align-items: center; gap: 8px;">
-			<div class="compiler-type" style="min-width: 128px; min-height: 20px;">Compiler</div>
+		<div style="display: flex; align-items: center; gap: 12px;">
+			<div class="compiler-type" style="min-width: 128px; min-height: 20px; max-height: 20px;">Compiler</div>
 			<select class="compiler-select">
 				<option value="dxc">DXC</option>
 				<option value="fxc">FXC</option>
 				<option value="glslang">GLSLang</option>
 			</select>
 		</div>
-		<div style="display: flex; align-items: center; gap: 8px;">
+		<div style="display: flex; align-items: center; gap: 12px;">
 			<div class="shader-type" style="min-width: 128px; min-height: 20px;">Shader Type</div>
 			<select class="shader-type-select">
 				<option value="vs">Vertex</option>
@@ -289,7 +289,7 @@
 				<option value="ms">Mesh</option>
 			</select>
 		</div>
-		<div style="display: flex; align-items: center; gap: 8px;">
+		<div style="display: flex; align-items: center; gap: 12px;">
 			<div class="shader-mode" style="min-width: 128px; min-height: 20px;">Shader Mode</div>
 			<select class="shader-mode-select">
 				<option value="5_0">sm5.0</option>
@@ -307,7 +307,7 @@
 				<option value="460">460</option>
 			</select>
 		</div>
-		<div style="display: flex; align-items: center; gap: 8px;">
+		<div style="display: flex; align-items: center; gap: 12px;">
 			<div class="output-type" style="min-width: 128px; min-height: 20px;">Output Type</div>
 			<select class="output-type-select">
 				<option value="DXIL">DXIL</option>
@@ -319,12 +319,12 @@
 				<option value="MSL">MSL</option>
 			</select>
 		</div>
-		<div style="display: flex; align-items: center; gap: 8px;">
+		<div style="display: flex; align-items: center; gap: 12px;">
 			<div class="entry-point" style="min-width: 128px; min-height: 20px;">Entry Point</div>
 			<input type="text" class="entry-point-input" placeholder="main" style="background-color: var(--secondary-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px 8px; flex-grow: 1;">
 		</div>
-		<div style="display: flex; align-items: center; gap: 8px;">
-			<div class="additional-option" style="min-width: 108px; min-height: 20px;">Additional Option</div>
+		<div style="display: flex; align-items: center; gap: 12px;">
+			<div class="additional-option" style="min-width: 104px; min-height: 20px;">Additional Option</div>
 			<input type="checkbox" class="additional-option-checkbox" style="width: 12px; height: 12px; min-width: 12px; min-height: 12px; max-width: 12px; max-height: 12px;">
 			<input type="text" class="additional-option-input" placeholder="Enter additional option" style="background-color: var(--secondary-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px 8px; flex-grow: 1;">
 		</div>
@@ -334,23 +334,239 @@
 		<div class="header-title" style="min-width: 200px;">Shader Code Options</div>
 	</div>
 	<div class="shadercode-options">
-		<div style="display: flex; align-items: center; gap: 8px;">
+		<div style="display: flex; align-items: center; gap: 12px;">
 			<div class="shader-language" style="min-width: 128px; min-height: 20px;">Shader Language</div>
 			<select class="shader-language-select">
 				<option value="hlsl">HLSL</option>
 				<option value="glsl">GLSL</option>
 			</select>
 		</div>
-		<div style="display: flex; flex-direction: column; margin-top: 16px;">
-			<div class="macro-definitions" style="min-width: 128px; min-height: 20px; margin-bottom: 8px;">宏定义</div>
-			<div class="macro-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;">
-				<!-- 宏定义项将通过 JavaScript 动态添加 -->
+		<div style="display: flex; flex-direction: column; margin-top: 24px;">
+			<div style="display: flex; align-items: center; margin-bottom: 12px;">
+				<div class="macro-definitions" style="min-width: 128px; min-height: 20px; flex-grow: 1;">Macros-Definitions</div>
+				<button class="add-macro-button" style="background-color: var(--accent-color); color: white; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer;">Add Macro</button>
 			</div>
-			<div style="display: flex; align-items: center; gap: 8px;">
-				<input type="text" class="new-macro-input" placeholder="输入宏定义 (例如: NAME=VALUE)" style="background-color: var(--secondary-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px 8px; flex-grow: 1;">
-				<button class="add-macro-button">添加宏</button>
+			<div class="macro-list" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; background-color: var(--secondary-bg); max-height: 200px; overflow-y: auto;">
+				<!-- 默认宏定义示例 -->
+				<div class="macro-item" style="display: flex; align-items: center; gap: 12px; padding: 4px 0;">
+					<div class="macro-value" style="flex-grow: 1; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 4px; background-color: var(--primary-bg);">DEBUG=1</div>
+					<button class="remove-macro-button" style="background-color: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+					</button>
+				</div>
+				<div class="macro-item" style="display: flex; align-items: center; gap: 12px; padding: 4px 0;">
+					<div class="macro-value" style="flex-grow: 1; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 4px; background-color: var(--primary-bg);">ENABLE_FEATURE_X=1</div>
+					<button class="remove-macro-button" style="background-color: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+					</button>
+				</div>
+			</div>
+		</div>
+		
+		<!-- Include Paths 列表 -->
+		<div style="display: flex; flex-direction: column; margin-top: 24px;">
+			<div style="display: flex; align-items: center; margin-bottom: 12px;">
+				<div class="include-paths" style="min-width: 128px; min-height: 20px; flex-grow: 1;">Include Paths</div>
+				<button class="add-include-path-button" style="background-color: var(--accent-color); color: white; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer;">Add Path</button>
+			</div>
+			<div class="include-path-list" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; background-color: var(--secondary-bg); max-height: 200px; overflow-y: auto;">
+				<!-- 默认包含路径示例 -->
+				<div class="include-path-item" style="display: flex; align-items: center; gap: 12px; padding: 4px 0;">
+					<div class="include-path-value" style="flex-grow: 1; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 4px; background-color: var(--primary-bg);">./include</div>
+					<button class="remove-include-path-button" style="background-color: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+					</button>
+				</div>
 			</div>
 		</div>
 	</div>
+<script>
+	// 宏定义列表功能实现
+	document.addEventListener('DOMContentLoaded', function() {
+		// 添加宏按钮点击事件
+		document.querySelector('.add-macro-button').addEventListener('click', function() {
+			// 创建新的宏定义项
+			const macroItem = document.createElement('div');
+			macroItem.className = 'macro-item';
+			macroItem.style.display = 'flex';
+			macroItem.style.alignItems = 'center';
+			macroItem.style.gap = '12px';
+			macroItem.style.padding = '4px 0';
+				
+			// 创建宏值显示（可编辑）
+			const macroValueEl = document.createElement('div');
+			macroValueEl.className = 'macro-value';
+			macroValueEl.style.flexGrow = '1';
+			macroValueEl.style.padding = '4px 8px';
+			macroValueEl.style.border = '1px solid var(--border-color)';
+			macroValueEl.style.borderRadius = '4px';
+			macroValueEl.style.backgroundColor = 'var(--primary-bg)';
+			macroValueEl.textContent = ''; // 初始为空
+			macroValueEl.setAttribute('data-placeholder', 'Example: NAME=VALUE');
+			
+			// 添加占位符逻辑
+			function updatePlaceholder() {
+				if (macroValueEl.textContent.trim() === '') {
+					macroValueEl.style.color = 'var(--text-muted)';
+					macroValueEl.textContent = macroValueEl.getAttribute('data-placeholder');
+				} else {
+					macroValueEl.style.color = 'var(--text-color)';
+				}
+			}
+			
+			// 初始化占位符
+			updatePlaceholder();
+			
+			// 添加点击事件以清除占位符
+			macroValueEl.addEventListener('click', function() {
+				if (macroValueEl.textContent === macroValueEl.getAttribute('data-placeholder')) {
+					macroValueEl.textContent = '';
+					macroValueEl.style.color = 'var(--text-color)';
+				}
+			});
+			
+			// 添加失去焦点事件以恢复占位符
+			macroValueEl.addEventListener('blur', updatePlaceholder);
+			
+			// 使元素可编辑
+			macroValueEl.contentEditable = true;
+			
+			// 创建删除按钮
+			const removeButton = document.createElement('button');
+			removeButton.className = 'remove-macro-button';
+			removeButton.style.backgroundColor = 'transparent';
+			removeButton.style.border = 'none';
+			removeButton.style.color = 'var(--text-muted)';
+			removeButton.style.cursor = 'pointer';
+			removeButton.style.padding = '4px';
+			removeButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+
+			// 添加删除事件
+			removeButton.addEventListener('click', function() {
+				macroItem.remove();
+			});
+			
+			// 添加到列表
+			macroItem.appendChild(macroValueEl);
+			macroItem.appendChild(removeButton);
+			document.querySelector('.macro-list').appendChild(macroItem);
+			
+			// 自动聚焦到新创建的宏项
+			macroValueEl.click();
+		});
+		
+		// 为现有删除按钮添加点击事件
+		document.querySelectorAll('.remove-macro-button').forEach(button => {
+			button.addEventListener('click', function() {
+				this.parentElement.remove();
+			});
+		});
+		
+		// 获取VS Code API
+		const vscode = acquireVsCodeApi();
+		
+		// Include Path 列表功能实现
+		// 添加Include Path按钮点击事件
+		document.querySelector('.add-include-path-button').addEventListener('click', function() {
+			// 发送消息给扩展程序，请求打开文件夹选择对话框
+			vscode.postMessage({
+				command: 'openFolderDialog'
+			});
+		});
+		
+		// 监听来自扩展程序的消息
+		window.addEventListener('message', event => {
+			const message = event.data;
+			if (message.command === 'folderSelected' && message.path) {
+				// 创建新的Include Path项
+				const includePathItem = document.createElement('div');
+				includePathItem.className = 'include-path-item';
+				includePathItem.style.display = 'flex';
+				includePathItem.style.alignItems = 'center';
+				includePathItem.style.gap = '12px';
+				includePathItem.style.padding = '4px 0';
+				
+				// 创建Include Path值显示
+				const includePathValueEl = document.createElement('div');
+				includePathValueEl.className = 'include-path-value';
+				includePathValueEl.style.flexGrow = '1';
+				includePathValueEl.style.padding = '4px 8px';
+				includePathValueEl.style.border = '1px solid var(--border-color)';
+				includePathValueEl.style.borderRadius = '4px';
+				includePathValueEl.style.backgroundColor = 'var(--primary-bg)';
+				includePathValueEl.textContent = message.path;
+				
+				// 创建删除按钮
+				const removeButton = document.createElement('button');
+				removeButton.className = 'remove-include-path-button';
+				removeButton.style.backgroundColor = 'transparent';
+				removeButton.style.border = 'none';
+				removeButton.style.color = 'var(--text-muted)';
+				removeButton.style.cursor = 'pointer';
+				removeButton.style.padding = '4px';
+				removeButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+				
+				// 添加删除事件
+				removeButton.addEventListener('click', function() {
+					includePathItem.remove();
+				});
+				
+				// 添加到列表
+				includePathItem.appendChild(includePathValueEl);
+				includePathItem.appendChild(removeButton);
+				document.querySelector('.include-path-list').appendChild(includePathItem);
+			}
+		});
+		});
+		
+		// 为现有删除按钮添加点击事件
+		document.querySelectorAll('.remove-include-path-button').forEach(button => {
+			button.addEventListener('click', function() {
+				this.parentElement.remove();
+			});
+		});
+
+		
+		// 允许宏值双击编辑
+		document.addEventListener('dblclick', function(e) {
+			if (e.target.classList.contains('macro-value')) {
+				const currentValue = e.target.textContent;
+				const input = document.createElement('input');
+				input.type = 'text';
+				input.value = currentValue;
+				input.style.width = '100%';
+				input.style.padding = '4px 8px';
+				input.style.backgroundColor = 'var(--primary-bg)';
+				input.style.color = 'var(--text-color)';
+				input.style.border = '1px solid var(--accent-color)';
+				input.style.borderRadius = '4px';
+				
+				e.target.parentNode.replaceChild(input, e.target);
+				input.focus();
+				
+				// 失去焦点时保存
+				input.addEventListener('blur', function() {
+					const newValue = input.value.trim();
+					const macroValueEl = document.createElement('div');
+					macroValueEl.className = 'macro-value';
+					macroValueEl.style.flexGrow = '1';
+					macroValueEl.style.padding = '4px 8px';
+					macroValueEl.style.border = '1px solid var(--border-color)';
+					macroValueEl.style.borderRadius = '4px';
+					macroValueEl.style.backgroundColor = 'var(--primary-bg)';
+					macroValueEl.textContent = newValue || currentValue;
+					input.parentNode.replaceChild(macroValueEl, input);
+				});
+				
+				// 按Enter键保存
+				input.addEventListener('keydown', function(e) {
+					if (e.key === 'Enter') {
+						input.blur();
+					}
+				});
+			}
+		});
+// 此选择中的单个 `}` 是多余的，推测是代码编辑时的错误，此处移除
+</script>
 </body>
 </html>
