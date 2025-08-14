@@ -258,157 +258,99 @@
 	</style>
 </head>
 <body>
-	<div class="header">
-		<div class="header-title">Shader Cross Explorer</div>
-		<div class="toolbar">
-			<button class="toolbar-button" title="New File"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg></button>
-			<button class="toolbar-button" title="Refresh"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v6h6"></path><path d="M21 12A9 9 0 0 0 6 5.3L3 8"></path><path d="M21 22v-6h-6"></path><path d="M3 12a9 9 0 0 0 15 6.7l3-2.7"></path></svg></button>
+	<div class="compiler-header" style="min-width: 200px;">
+		<div class="header-title">Compiler Options</div>
+	</div>
+	<div class="compiler-options">
+		<div style="display: flex; align-items: center; gap: 8px;">
+			<div class="compiler-type" style="min-width: 128px; min-height: 20px;">Compiler</div>
+			<select class="compiler-select">
+				<option value="dxc">DXC</option>
+				<option value="fxc">FXC</option>
+				<option value="glslang">GLSLang</option>
+			</select>
+		</div>
+		<div style="display: flex; align-items: center; gap: 8px;">
+			<div class="shader-type" style="min-width: 128px; min-height: 20px;">Shader Type</div>
+			<select class="shader-type-select">
+				<option value="vs">Vertex</option>
+				<option value="ps">Pixel</option>
+				<option value="gs">Geometry</option>
+				<option value="hs">Hull</option>
+				<option value="ds">Domain</option>
+				<option value="cs">Compute</option>
+				<option value="rgen">RayGeneration</option>
+				<option value="rint">RayIntersection</option>
+				<option value="rahit">RayAnyHit</option>
+				<option value="rchit">RayClosest Hit</option>
+				<option value="rmiss">RayMiss</option>
+				<option value="rcall">RayCallable</option>
+				<option value="rs">Amplification</option>
+				<option value="ms">Mesh</option>
+			</select>
+		</div>
+		<div style="display: flex; align-items: center; gap: 8px;">
+			<div class="shader-mode" style="min-width: 128px; min-height: 20px;">Shader Mode</div>
+			<select class="shader-mode-select">
+				<option value="5_0">sm5.0</option>
+				<option value="5_1">sm5.1</option>
+				<option value="6_0">sm6.0</option>
+				<option value="6_1">sm6.1</option>
+				<option value="6_2">sm6.2</option>
+				<option value="6_3">sm6.3</option>
+				<option value="6_4">sm6.4</option>
+				<option value="6_5">sm6.5</option>
+				<option value="6_6">sm6.6</option>
+				<option value="6_7">sm6.7</option>
+				<option value="6_8">sm6.8</option>
+				<option value="450">450</option>
+				<option value="460">460</option>
+			</select>
+		</div>
+		<div style="display: flex; align-items: center; gap: 8px;">
+			<div class="output-type" style="min-width: 128px; min-height: 20px;">Output Type</div>
+			<select class="output-type-select">
+				<option value="DXIL">DXIL</option>
+				<option value="DXBC">DXBC</option>
+				<option value="SPIR-V">SPIR-V</option>
+				<option value="HLSL">HLSL</option>
+				<option value="HLSL-Preprocess">HLSL-Preprocess</option>
+				<option value="GLSL">GLSL</option>
+				<option value="MSL">MSL</option>
+			</select>
+		</div>
+		<div style="display: flex; align-items: center; gap: 8px;">
+			<div class="entry-point" style="min-width: 128px; min-height: 20px;">Entry Point</div>
+			<input type="text" class="entry-point-input" placeholder="main" style="background-color: var(--secondary-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px 8px; flex-grow: 1;">
+		</div>
+		<div style="display: flex; align-items: center; gap: 8px;">
+			<div class="additional-option" style="min-width: 108px; min-height: 20px;">Additional Option</div>
+			<input type="checkbox" class="additional-option-checkbox" style="width: 12px; height: 12px; min-width: 12px; min-height: 12px; max-width: 12px; max-height: 12px;">
+			<input type="text" class="additional-option-input" placeholder="Enter additional option" style="background-color: var(--secondary-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px 8px; flex-grow: 1;">
 		</div>
 	</div>
-
-	<div class="main-content">
-		<div class="explorer-panel">
-			<div class="explorer-header">
-				Shader Files
-				<button class="toolbar-button" title="Add Folder"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 19a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4l2 3h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg></button>
-			</div>
-			<div class="explorer-tree">
-				<div class="tree-item">
-					<div class="tree-toggle">
-						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-					</div>
-					<div class="tree-icon">
-						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-					</div>
-					Shaders
-				</div>
-				<div class="tree-item" style="padding-left: 28px;">
-					<div class="tree-icon">
-						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-					</div>
-					basic.vert
-				</div>
-				<div class="tree-item" style="padding-left: 28px;">
-					<div class="tree-icon">
-						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-					</div>
-					basic.frag
-				</div>
-				<div class="tree-item">
-					<div class="tree-toggle">
-						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-					</div>
-					<div class="tree-icon">
-						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-					</div>
-					Includes
-				</div>
-				<div class="tree-item" style="padding-left: 28px;">
-					<div class="tree-icon">
-						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-					</div>
-					utils.glsl
-				</div>
-			</div>
+	</div>
+	<div class="shadercode-header">
+		<div class="header-title" style="min-width: 200px;">Shader Code Options</div>
+	</div>
+	<div class="shadercode-options">
+		<div style="display: flex; align-items: center; gap: 8px;">
+			<div class="shader-language" style="min-width: 128px; min-height: 20px;">Shader Language</div>
+			<select class="shader-language-select">
+				<option value="hlsl">HLSL</option>
+				<option value="glsl">GLSL</option>
+			</select>
 		</div>
-
-		<div class="content-area">
-			<div class="no-selection" id="noSelection">
-				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-				<p>Select a shader file to edit</p>
+		<div style="display: flex; flex-direction: column; margin-top: 16px;">
+			<div class="macro-definitions" style="min-width: 128px; min-height: 20px; margin-bottom: 8px;">宏定义</div>
+			<div class="macro-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;">
+				<!-- 宏定义项将通过 JavaScript 动态添加 -->
 			</div>
-
-			<div class="editor-container" id="editorContainer" style="display: none;">
-				<div class="editor-header">
-					<div class="editor-filename" id="editorFilename"></div>
-				</div>
-				<div class="editor-content">
-					<textarea id="shaderCode" placeholder="Shader code will appear here..."></textarea>
-				</div>
-			</div>
-
-			<div class="compiler-controls" style="display: none;">
-				<select id="inputFormat">
-					<option value="glsl">GLSL</option>
-					<option value="hlsl" selected>HLSL</option>
-					<option value="spirv">SPIR-V</option>
-				</select>
-				<span>→</span>
-				<select id="outputFormat">
-					<option value="glsl">GLSL</option>
-					<option value="hlsl">HLSL</option>
-					<option value="spirv">SPIR-V</option>
-				</select>
-				<button id="compileBtn">Compile</button>
-			</div>
-
-			<div class="output-panel" style="display: none;">
-				<div class="output-header">Output</div>
-				<div class="output-content" id="outputContent"></div>
+			<div style="display: flex; align-items: center; gap: 8px;">
+				<input type="text" class="new-macro-input" placeholder="输入宏定义 (例如: NAME=VALUE)" style="background-color: var(--secondary-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px 8px; flex-grow: 1;">
+				<button class="add-macro-button">添加宏</button>
 			</div>
 		</div>
 	</div>
-
-	<script>
-		// 这里添加交互逻辑
-		// 获取VS Code API
-		const vscode = acquireVsCodeApi();
-
-		// 树项目点击事件
-		document.querySelectorAll('.tree-item').forEach(item => {
-			item.addEventListener('click', () => {
-				// 移除其他项目的活动状态
-				document.querySelectorAll('.tree-item').forEach(i => i.classList.remove('active'));
-				// 添加当前项目的活动状态
-				item.classList.add('active');
-
-				// 显示编辑器和编译控件
-				document.querySelector('.no-selection').style.display = 'none';
-				document.querySelector('.compiler-controls').style.display = 'flex';
-				document.querySelector('.output-panel').style.display = 'flex';
-
-				// 获取文件名
-				const fileName = item.textContent.trim();
-				// 在实际应用中，这里应该从服务器获取文件内容
-				// 为了演示，我们只是显示一个简单的消息
-				vscode.postMessage({
-					command: 'openFile',
-					fileName: fileName
-				});
-			});
-		});
-
-		// 编译按钮点击事件
-		document.getElementById('compileBtn').addEventListener('click', () => {
-			const inputFormat = document.getElementById('inputFormat').value;
-			const outputFormat = document.getElementById('outputFormat').value;
-			const activeFile = document.querySelector('.tree-item.active')?.textContent.trim() || '';
-
-			vscode.postMessage({
-				command: 'compileShader',
-				fileName: activeFile,
-				inputFormat: inputFormat,
-				outputFormat: outputFormat
-			});
-		});
-
-		// 监听来自VS Code的消息
-		window.addEventListener('message', event => {
-			const message = event.data;
-			switch (message.command) {
-				case 'fileContent':
-					// 更新编辑器内容
-					document.getElementById('noSelection').style.display = 'none';
-					document.getElementById('editorContainer').style.display = 'flex';
-					document.getElementById('editorFilename').textContent = message.fileName;
-					document.getElementById('shaderCode').value = message.content;
-					break;
-				case 'compileResult':
-					// 显示编译结果
-					document.getElementById('outputContent').textContent = message.result;
-					break;
-			}
-		});
-	</script>
 </body>
 </html>
