@@ -30,6 +30,7 @@
 			height: 100vh;
 			display: flex;
 			flex-direction: column;
+			min-width: 320px;
 		}
 
 		/* Header Styles */
@@ -258,21 +259,21 @@
 	</style>
 </head>
 <body>
-	<div class="compiler-header" style="min-width: 200px;">
+	<div class="compiler-header" style="margin-bottom: 16px; min-width: 200px;">
 		<div class="header-title">Compiler Options</div>
 	</div>
 	<div class="compiler-options">
-		<div style="display: flex; align-items: center; gap: 12px;">
+		<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
 			<div class="compiler-type" style="min-width: 128px; min-height: 20px; max-height: 20px;">Compiler</div>
-			<select class="compiler-select">
+			<select class="compiler-select" style="flex-grow: 1; min-width: 150px;">
 				<option value="dxc">DXC</option>
 				<option value="fxc">FXC</option>
 				<option value="glslang">GLSLang</option>
 			</select>
 		</div>
-		<div style="display: flex; align-items: center; gap: 12px;">
+		<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
 			<div class="shader-type" style="min-width: 128px; min-height: 20px;">Shader Type</div>
-			<select class="shader-type-select">
+			<select class="shader-type-select" style="flex-grow: 1; min-width: 150px;">
 				<option value="vs">Vertex</option>
 				<option value="ps">Pixel</option>
 				<option value="gs">Geometry</option>
@@ -289,9 +290,9 @@
 				<option value="ms">Mesh</option>
 			</select>
 		</div>
-		<div style="display: flex; align-items: center; gap: 12px;">
+		<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
 			<div class="shader-mode" style="min-width: 128px; min-height: 20px;">Shader Mode</div>
-			<select class="shader-mode-select">
+			<select class="shader-mode-select" style="flex-grow: 1; min-width: 150px;">
 				<option value="5_0">sm5.0</option>
 				<option value="5_1">sm5.1</option>
 				<option value="6_0">sm6.0</option>
@@ -307,9 +308,9 @@
 				<option value="460">460</option>
 			</select>
 		</div>
-		<div style="display: flex; align-items: center; gap: 12px;">
+		<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
 			<div class="output-type" style="min-width: 128px; min-height: 20px;">Output Type</div>
-			<select class="output-type-select">
+			<select class="output-type-select" style="flex-grow: 1; min-width: 150px;">
 				<option value="DXIL">DXIL</option>
 				<option value="DXBC">DXBC</option>
 				<option value="SPIR-V">SPIR-V</option>
@@ -319,34 +320,37 @@
 				<option value="MSL">MSL</option>
 			</select>
 		</div>
-		<div style="display: flex; align-items: center; gap: 12px;">
+		<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
 			<div class="entry-point" style="min-width: 128px; min-height: 20px;">Entry Point</div>
 			<input type="text" class="entry-point-input" placeholder="main" style="background-color: var(--secondary-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px 8px; flex-grow: 1;">
 		</div>
-		<div style="display: flex; align-items: center; gap: 12px;">
+		<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
 			<div class="additional-option" style="min-width: 104px; min-height: 20px;">Additional Option</div>
 			<input type="checkbox" class="additional-option-checkbox" style="width: 12px; height: 12px; min-width: 12px; min-height: 12px; max-width: 12px; max-height: 12px;">
 			<input type="text" class="additional-option-input" placeholder="Enter additional option" style="background-color: var(--secondary-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px 8px; flex-grow: 1;">
 		</div>
 	</div>
 	</div>
-	<div class="shadercode-header">
+	<div style="height: 1px; background-color: var(--border-color); margin: 16px 0;"></div>
+	<div class="shadercode-header" style="margin-bottom: 16px;">
 		<div class="header-title" style="min-width: 200px;">Shader Code Options</div>
 	</div>
 	<div class="shadercode-options">
 		<div style="display: flex; align-items: center; gap: 12px;">
 			<div class="shader-language" style="min-width: 128px; min-height: 20px;">Shader Language</div>
-			<select class="shader-language-select">
+			<select class="shader-language-select" style="flex-grow: 1; min-width: 150px;">
 				<option value="hlsl">HLSL</option>
 				<option value="glsl">GLSL</option>
 			</select>
 		</div>
-		<div style="display: flex; flex-direction: column; margin-top: 24px;">
-			<div style="display: flex; align-items: center; margin-bottom: 12px;">
+		<div style="display: flex; flex-direction: column; margin-top: 16px;">
+			<div style="display: flex; align-items: center; margin-bottom: 8px;">
 				<div class="macro-definitions" style="min-width: 128px; min-height: 20px; flex-grow: 1;">Macros-Definitions</div>
-				<button class="add-macro-button" style="background-color: var(--accent-color); color: white; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer;">Add Macro</button>
+				<button class="add-macro-button" style="background-color: var(--accent-color); color: white; border: none; border-radius: 4px; width: 28px; height: 28px; padding: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+				</button>
 			</div>
-			<div class="macro-list" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; background-color: var(--secondary-bg); max-height: 200px; overflow-y: auto;">
+			<div class="macro-list" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 8px; border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; background-color: var(--secondary-bg); max-height: 200px; overflow-y: auto;">
 				<!-- 默认宏定义示例 -->
 				<div class="macro-item" style="display: flex; align-items: center; gap: 12px; padding: 4px 0;">
 					<div class="macro-value" style="flex-grow: 1; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 4px; background-color: var(--primary-bg);">DEBUG=1</div>
@@ -364,12 +368,14 @@
 		</div>
 		
 		<!-- Include Paths 列表 -->
-		<div style="display: flex; flex-direction: column; margin-top: 24px;">
-			<div style="display: flex; align-items: center; margin-bottom: 12px;">
+		<div style="display: flex; flex-direction: column; margin-top: 16px;">
+			<div style="display: flex; align-items: center; margin-bottom: 8px;">
 				<div class="include-paths" style="min-width: 128px; min-height: 20px; flex-grow: 1;">Include Paths</div>
-				<button class="add-include-path-button" style="background-color: var(--accent-color); color: white; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer;">Add Path</button>
+				<button class="add-include-path-button" style="background-color: var(--accent-color); color: white; border: none; border-radius: 4px; padding: 4px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+  					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+				</button>
 			</div>
-			<div class="include-path-list" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; background-color: var(--secondary-bg); max-height: 200px; overflow-y: auto;">
+			<div class="include-path-list" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 8px; border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; background-color: var(--secondary-bg); max-height: 200px; overflow-y: auto;">
 				<!-- 默认包含路径示例 -->
 				<div class="include-path-item" style="display: flex; align-items: center; gap: 12px; padding: 4px 0;">
 					<div class="include-path-value" style="flex-grow: 1; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 4px; background-color: var(--primary-bg);">./include</div>
