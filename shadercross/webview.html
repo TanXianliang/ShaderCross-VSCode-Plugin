@@ -488,9 +488,37 @@
 
 		// 编译按钮点击事件
 		document.getElementById('compile-shader-button').addEventListener('click', function() {
+			// 获取所有编译参数
+			const compilerSelect = document.querySelector('.compiler-select');
+			const shaderTypeSelect = document.querySelector('.shader-type-select');
+			const shaderModeSelect = document.querySelector('.shader-mode-select');
+			const outputTypeSelect = document.querySelector('.output-type-select');
+			const entryPointInput = document.querySelector('.entry-point-input');
+			const additionalOptionCheckbox = document.querySelector('.additional-option-checkbox');
+			const additionalOptionInput = document.querySelector('.additional-option-input');
+			const shaderLanguageSelect = document.querySelector('.shader-language-select');
+			
+			// 获取宏定义
+			const macroItems = document.querySelectorAll('.macro-item .macro-value');
+			const macros = Array.from(macroItems).map(item => item.textContent.trim());
+			
+			// 获取包含路径
+			const includePathItems = document.querySelectorAll('.include-path-item .include-path-value');
+			const includePaths = Array.from(includePathItems).map(item => item.textContent.trim());
+			
 			// 发送编译命令和参数
 			vscode.postMessage({
-				command: 'compileShader'
+				command: 'compileShader',
+				compiler: compilerSelect.value,
+				shaderType: shaderTypeSelect.value,
+				shaderMode: shaderModeSelect.value,
+				outputType: outputTypeSelect.value,
+				entryPoint: entryPointInput.value.trim(),
+				additionalOptionEnabled: additionalOptionCheckbox.checked,
+				additionalOption: additionalOptionInput.value.trim(),
+				shaderLanguage: shaderLanguageSelect.value,
+				macros: macros,
+				includePaths: includePaths
 			});
 		});
 		

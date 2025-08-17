@@ -12,8 +12,6 @@ class ShaderCrossViewProvider {
 	}
 
 	// 这个方法在VS Code需要显示视图时被调用
-
-
 	resolveWebviewView(webviewView) {
 		// 设置webview选项
 		webviewView.webview.options = {
@@ -30,7 +28,7 @@ class ShaderCrossViewProvider {
 				switch (message.command) {
 					case 'compileShader':
 						this.compileShader(
-							message.params,
+							message,
 							webviewView
 						);
 						return;
@@ -45,12 +43,10 @@ class ShaderCrossViewProvider {
 	}
 
 	// 编译着色器
-	compileShader(params, webviewView) {
+	compileShader(message, webviewView) {
 		try {
-			let shaderModel = `sm6.6`;
-			let outputType = `dxil`;
 			// 显示编译信息
-			vscode.window.showInformationMessage(`Compiling shader with model ${shaderModel} to ${outputType}`);
+			vscode.window.showInformationMessage(`Compiling shader with model ${message.shaderMode} to ${message.outputType}`);
 
 			// 在实际应用中，这里应该调用真正的编译逻辑
 			// 模拟编译过程
