@@ -28,19 +28,14 @@ class ShaderCrossViewProvider {
 		webviewView.webview.onDidReceiveMessage(
 			(message) => {
 				switch (message.command) {
-					case 'openFile':
-						this.openFile(message.fileName, webviewView);
-						return;
 					case 'compileShader':
 						this.compileShader(
-							message.fileName,
-							message.inputFormat,
-							message.outputFormat,
+							message.params,
 							webviewView
 						);
 						return;
-					case 'openFolderDialog':
-						this.openFolderDialog(webviewView);
+					case 'openIncludeFloderDialg':
+						this.openIncludeFloderDialg(webviewView);
 						return;
 				}
 			},
@@ -49,63 +44,19 @@ class ShaderCrossViewProvider {
 		);
 	}
 
-	// 打开文件并发送内容到webview
-	openFile(fileName, webviewView) {
-		try {
-			// 在实际应用中，这里应该根据文件名从文件系统读取内容
-			// 为了演示，我们返回一个模拟的着色器内容
-			let fileContent = '';
-			if (fileName.endsWith('.vert')) {
-				fileContent = `#version 300 es
-
-in vec3 a_position;
-
-void main() {
-  gl_Position = vec4(a_position, 1.0);
-}`;
-			} else if (fileName.endsWith('.frag')) {
-				fileContent = `#version 300 es
-
-precision highp float;
-
-out vec4 outColor;
-
-void main() {
-  outColor = vec4(1.0, 0.0, 0.0, 1.0);
-}`;
-			} else if (fileName.endsWith('.glsl')) {
-				fileContent = `// 工具函数
-vec3 normalizeVec3(vec3 v) {
-  float len = sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
-  return v / len;
-}`;
-			}
-
-			// 发送文件内容到webview
-			webviewView.webview.postMessage({
-				command: 'fileContent',
-				fileName: fileName,
-				content: fileContent
-			});
-		} catch (error) {
-			vscode.window.showErrorMessage(`Failed to open file: ${error.message}`);
-		}
-	}
-
 	// 编译着色器
-	compileShader(fileName, inputFormat, outputFormat, webviewView) {
+	compileShader(params, webviewView) {
 		try {
-			vscode.window.showInformationMessage(`Compiling ${fileName} from ${inputFormat} to ${outputFormat}`);
+			let shaderModel = `sm6.6`;
+			let outputType = `dxil`;
+			// 显示编译信息
+			vscode.window.showInformationMessage(`Compiling shader with model ${shaderModel} to ${outputType}`);
 
+			// 在实际应用中，这里应该调用真正的编译逻辑
 			// 模拟编译过程
 			setTimeout(() => {
-				const result = `Compilation successful!
-
-Converted ${fileName} from ${inputFormat} to ${outputFormat}.
-
-Output:
-// Compiled shader output would appear here
-`;
+				// 构建编译结果
+				let result = `Compilation successful!`;
 
 				// 发送编译结果到webview
 				webviewView.webview.postMessage({
@@ -119,7 +70,7 @@ Output:
 	}
 
 	// 打开文件夹选择对话框
-	openFolderDialog(webviewView) {
+	openIncludeFloderDialg(webviewView) {
 		try {
 			// 显示文件夹选择对话框
 			vscode.window.showOpenDialog({

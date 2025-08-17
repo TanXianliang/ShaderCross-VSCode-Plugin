@@ -332,6 +332,14 @@
 	</div>
 	</div>
 	<div style="height: 1px; background-color: var(--border-color); margin: 16px 0;"></div>
+	
+	<!-- 编译结果区域 -->
+	<div class="compile-result-container" style="display: none; margin-top: 16px;">
+		<div class="compile-result-header" style="display: flex; align-items: center; margin-bottom: 8px;">
+			<div class="header-title" style="min-width: 200px;">Compile Result</div>
+		</div>
+		<pre class="compile-result-content" style="background-color: var(--secondary-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; white-space: pre-wrap; max-height: 300px; overflow-y: auto;"></pre>
+	</div>
 	<div class="shadercode-header" style="margin-bottom: 16px;">
 		<div class="header-title" style="min-width: 200px;">Shader Code Options</div>
 	</div>
@@ -385,7 +393,14 @@
 				</div>
 			</div>
 		</div>
-	</div>
+    <!-- 编译按钮 -->
+    <div style="margin-top: 24px;">
+      <button id="compile-shader-button" style="background-color: var(--accent-color); color: white; border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer; font-size: 14px; width: 100%;">
+        Compile Shader
+      </button>
+    </div>
+  </div>
+</div>
 <script>
 	// 宏定义列表功能实现
 	document.addEventListener('DOMContentLoaded', function() {
@@ -470,13 +485,22 @@
 		
 		// 获取VS Code API
 		const vscode = acquireVsCodeApi();
+
+		// 编译按钮点击事件
+		document.getElementById('compile-shader-button').addEventListener('click', function() {
+			// 发送编译命令和参数
+			vscode.postMessage({
+				command: 'compileShader'
+			});
+		});
+		
 		
 		// Include Path 列表功能实现
 		// 添加Include Path按钮点击事件
 		document.querySelector('.add-include-path-button').addEventListener('click', function() {
 			// 发送消息给扩展程序，请求打开文件夹选择对话框
 			vscode.postMessage({
-				command: 'openFolderDialog'
+				command: 'openIncludeFloderDialg'
 			});
 		});
 		
@@ -520,10 +544,22 @@
 				// 添加到列表
 				includePathItem.appendChild(includePathValueEl);
 				includePathItem.appendChild(removeButton);
-				document.querySelector('.include-path-list').appendChild(includePathItem);
-			}
-		});
-		});
+						document.querySelector('.include-path-list').appendChild(includePathItem);
+					} else if (message.command === 'compileResult' && message.result) {
+						// 显示编译结果
+						const resultContainer = document.querySelector('.compile-result-container');
+						const resultContent = document.querySelector('.compile-result-content');
+						
+						if (resultContainer && resultContent) {
+							resultContent.textContent = message.result;
+							resultContainer.style.display = 'block';
+							
+							// 滚动到结果区域
+							resultContainer.scrollIntoView({ behavior: 'smooth' });
+						}
+					}
+				});
+			});
 		
 		// 为现有删除按钮添加点击事件
 		document.querySelectorAll('.remove-include-path-button').forEach(button => {
