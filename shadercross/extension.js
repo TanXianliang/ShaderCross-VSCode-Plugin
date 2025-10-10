@@ -42,24 +42,116 @@ class ShaderCrossViewProvider {
 		);
 	}
 
-	// 编译着色器
-	compileShader(message, webviewView) {
-		try {
-			// 显示编译信息
-			vscode.window.showInformationMessage(`Compiling shader with model ${message.shaderMode} to ${message.outputType}`);
+	comileShader_dxc(message, webviewView) {
+		// 获取dxc.exe路径
+			const dxcPath = path.join(this.context.extensionPath, 'external', 'dxc', 'bin', 'x64', 'dxc.exe');
 
-			// 在实际应用中，这里应该调用真正的编译逻辑
-			// 模拟编译过程
-			setTimeout(() => {
-				// 构建编译结果
-				let result = `Compilation successful!`;
+			// 构建编译参数
+			const args = [];
+
+			// 获取当前活动编辑器中的着色器文件路径
+			const activeEditor = vscode.window.activeTextEditor;
+			if (!activeEditor) {
+				vscode.window.showErrorMessage('No active editor found. Please open a shader file first.');
+				return;
+			}
+
+			const shaderFilePath = activeEditor.document.uri.fsPath;
+			args.push(shaderFilePath); // 添加输入文件路径
+
+			// 添加着色器模型参数
+			if (message.shaderMode) {
+				args.push(`-T${message.shaderMode}`);
+			}
+
+			// 添加输出类型参数
+			if (message.outputType) {
+				args.push(`-E${message.entryPoint || 'main'}`); // 入口点，默认为main
+				args.push(`-Fo${path.join(vscode.workspace.rootPath || '', 'compiled', 'output.' + message.outputType.toLowerCase())}`);
+			}
+
+			// 添加宏定义
+			if (message.macros && message.macros.length > 0) {
+				message.macros.forEach(macro => {
+					args.push(`-D${macro}`);
+				});
+			}
+
+			// 添加Include路径
+			if (message.includePaths && message.includePaths.length > 0) {
+				message.includePaths.forEach(path => {
+					args.push(`-I${path}`);
+				});
+			}
+
+			// 添加额外选项
+			if (message.additionalOptionEnabled && message.additionalOption) {
+				args.push(message.additionalOption);
+			}
+
+			// 输出编译命令信息
+			vscode.window.showInformationMessage(`Running: ${dxcPath} ${args.join(' ')}`);
+
+			// 确保输出目录存在
+			const outputDir = path.join(vscode.workspace.rootPath || '', 'compiled');
+			if (!fs.existsSync(outputDir)) {
+				try {
+					fs.mkdirSync(outputDir, { recursive: true });
+					vscode.window.showInformationMessage(`Created output directory: ${outputDir}`);
+				} catch (mkdirError) {
+					vscode.window.showErrorMessage(`Failed to create output directory: ${mkdirError.message}`);
+					return;
+				}
+			}
+
+			// 执行dxc.exe
+			const { exec } = require('child_process');
+			exec(`${dxcPath} ${args.join(' ')}`, (error, stdout, stderr) => {
+				let result = '';
+				if (error) {
+					result = `Compilation failed: ${error.message}\n\n${stderr}`;
+					vscode.window.showErrorMessage(result);
+				} else {
+					result = `Compilation successful!\n\n${stdout}`;
+					vscode.window.showInformationMessage('Shader compiled successfully');
+				}
 
 				// 发送编译结果到webview
 				webviewView.webview.postMessage({
 					command: 'compileResult',
 					result: result
 				});
-			}, 1000);
+			});
+	}
+
+	comileShader_fxc(message, webviewView) {
+	}
+
+	comileShader_glslang(message, webviewView) {
+	}
+
+	// 编译着色器
+	compileShader(message, webviewView) {
+		try {
+			// 根据编译器类型选择编译函数
+			switch (message.compiler) {
+				case 'dxc':
+					this.comileShader_dxc(message, webviewView);;
+					break;
+				case 'fxc':
+					this.comileShader_fxc(message, webviewView);;
+					break;
+				case 'glslang':
+					this.comileShader_glslang(message, webviewView);;
+					break;
+				default:
+					vscode.window.showErrorMessage(`Unsupported compiler: ${message.compiler}`);
+					return;
+			}
+
+			// 调用编译函数
+			vscode.window.showInformationMessage(`Compiling shader with model ${message.shaderMode} to ${message.outputType} using ${message.compiler}`);
+			
 		} catch (error) {
 			vscode.window.showErrorMessage(`Compilation failed: ${error.message}`);
 		}
