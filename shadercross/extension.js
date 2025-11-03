@@ -56,31 +56,64 @@ class ShaderCrossViewProvider {
 				return;
 			}
 
-			const shaderFilePath = activeEditor.document.uri.fsPath;
-			args.push(shaderFilePath); // 添加输入文件路径
-
 			// 添加着色器模型参数
-			if (message.shaderMode) {
-				args.push(`-T${message.shaderMode}`);
-			}
+			args.push(`-T ${message.shaderType}_${message.shaderMode}`);
 
-			// 添加输出类型参数
-			if (message.outputType) {
-				args.push(`-E${message.entryPoint || 'main'}`); // 入口点，默认为main
-				args.push(`-Fo${path.join(vscode.workspace.rootPath || '', 'compiled', 'output.' + message.outputType.toLowerCase())}`);
-			}
+			// 添加入口点参数
+			args.push(`-E ${message.entryPoint || 'main'}`); // 入口点，默认为main
 
 			// 添加宏定义
 			if (message.macros && message.macros.length > 0) {
 				message.macros.forEach(macro => {
-					args.push(`-D${macro}`);
+					args.push(`-D ${macro}`);
 				});
 			}
 
+			// 获取临时路径用于存储编译结果
+			const tmpDir = path.join(require('os').tmpdir(), 'shadercross-vscode-plugin');
+			if (!fs.existsSync(tmpDir)) {
+				try {
+					fs.mkdirSync(tmpDir, { recursive: true });
+				} catch (mkdirError) {
+					vscode.window.showErrorMessage(`Failed to create output directory: ${mkdirError.message}`);
+					console.error(`Failed to create output directory: ${mkdirError.message}`); // 输出到终端
+					return;
+				}
+			}
+
+			// 获取当前活动编辑器中的着色器文件路径
+			const dstFilePath = activeEditor.document.uri.fsPath;
+
+			// 如果当前活动编辑器中的内容存在修改且没有存盘，则把当前内容存盘到临时目录的同名着色器文件
+			let shaderFilePath = dstFilePath;
+			let tempShaderFilePath;
+
+			if (activeEditor.document.isDirty) {
+				const shaderFileName = path.basename(dstFilePath);
+				tempShaderFilePath = path.join(tmpDir, shaderFileName);
+				try {
+					fs.writeFileSync(tempShaderFilePath, activeEditor.document.getText(), 'utf8');
+					shaderFilePath = tempShaderFilePath;
+				} catch (writeError) {
+					vscode.window.showErrorMessage(`无法将未保存的着色器写入临时文件: ${writeError.message}`);
+					console.error(`Failed to write unsaved shader to temp file: ${writeError.message}`);
+					return;
+				}
+			}
+			
 			// 添加Include路径
 			if (message.includePaths && message.includePaths.length > 0) {
-				message.includePaths.forEach(path => {
-					args.push(`-I${path}`);
+				message.includePaths.forEach(includePath => {
+					// 检查是否为相对路径，如果是则转换为相对于dstFilePath的绝对路径
+					let resolvedPath = includePath;
+					const shaderDirPath = path.dirname(dstFilePath);
+					
+					// 如果不是绝对路径，则将其解析为相对于dstFilePath的绝对路径
+					if (!path.isAbsolute(includePath)) {
+						resolvedPath = path.resolve(shaderDirPath, includePath);
+					}
+					
+					args.push(`-I ${resolvedPath}`);
 				});
 			}
 
@@ -89,28 +122,49 @@ class ShaderCrossViewProvider {
 				args.push(message.additionalOption);
 			}
 
-			// 输出编译命令信息
-			vscode.window.showInformationMessage(`Running: ${dxcPath} ${args.join(' ')}`);
-
-			// 确保输出目录存在
-			const outputDir = path.join(vscode.workspace.rootPath || '', 'compiled');
-			if (!fs.existsSync(outputDir)) {
-				try {
-					fs.mkdirSync(outputDir, { recursive: true });
-					vscode.window.showInformationMessage(`Created output directory: ${outputDir}`);
-				} catch (mkdirError) {
-					vscode.window.showErrorMessage(`Failed to create output directory: ${mkdirError.message}`);
+			// 根据outputType定义输出文件名
+			let outputFileName;
+			switch (message.outputType.toLowerCase()) {
+				case 'dxil':
+					outputFileName = 'output.dxil';
+					break;
+				case 'spirv':
+					outputFileName = 'output.spv';
+					break;
+				case 'hlsl':
+				case 'hlsl-preprocess':
+					outputFileName = 'output.hlsl';
+					break;
+				case 'glsl':
+					outputFileName = 'output.glsl';
+					break;
+				case 'msl':
+					outputFileName = 'output.msl';
+					break;
+				default:
+					vscode.window.showErrorMessage(`不支持的输出类型: ${message.outputType}`);
 					return;
-				}
 			}
+
+			// 临时输出路径
+			const outputCompiledPath = path.join(tmpDir, outputFileName);
+			args.push(`-Fo ${outputCompiledPath}`);
+
+			args.push(shaderFilePath); // 添加输入文件路径
+
+			const argCmd = args.join(' ');
+
+			// 输出编译命令信息
+			vscode.window.showInformationMessage(`Running: ${dxcPath} ${argCmd}`);
 
 			// 执行dxc.exe
 			const { exec } = require('child_process');
-			exec(`${dxcPath} ${args.join(' ')}`, (error, stdout, stderr) => {
+			exec(`${dxcPath} ${argCmd}`, (error, stdout, stderr) => {
 				let result = '';
 				if (error) {
 					result = `Compilation failed: ${error.message}\n\n${stderr}`;
-					vscode.window.showErrorMessage(result);
+					vscode.window.showErrorMessage(`Shader compilation failed`);
+					console.error(result); // 输出到终端
 				} else {
 					result = `Compilation successful!\n\n${stdout}`;
 					vscode.window.showInformationMessage('Shader compiled successfully');
@@ -121,6 +175,19 @@ class ShaderCrossViewProvider {
 					command: 'compileResult',
 					result: result
 				});
+					
+				// 删除临时编译输出文件
+				try {
+					if (fs.existsSync(outputCompiledPath)) {
+						fs.unlinkSync(outputCompiledPath);
+					}
+
+					if (tempShaderFilePath && fs.existsSync(tempShaderFilePath)) {
+						fs.unlinkSync(tempShaderFilePath);
+					}
+				} catch (cleanupError) {
+					console.warn(`Failed to delete temporary compiled file: ${cleanupError.message}`);
+				}
 			});
 	}
 
