@@ -81,35 +81,7 @@ class ShaderCrossViewProvider {
 				
 				// 同步执行命令，等待完成
 				const stdout = execSync(cmd, { encoding: 'utf8' });
-
-				// 解析spirv-cross的输出，提取描述符绑定信息
-				outputReflectionInfo += '; Descriptor Bindings:\n';
-
-				// 使用正则表达式匹配描述符绑定信息
-				const bindingRegex = /descriptor set (\d+) binding (\d+):\s+([a-z0-9_\[\]]+)\s+([a-zA-Z0-9_]+)/gi;
-				let match;
-
-				while ((match = bindingRegex.exec(stdout)) !== null) {
-					const set = match[1];
-					const binding = match[2];
-					const type = match[3];
-					const name = match[4];
-
-					// 将spirv-cross的类型映射到更友好的名称
-					let typeName = this._mapDescriptorType(type);
-
-					// 添加到输出信息中
-					outputReflectionInfo += `;    Name: ${name}, Binding: ${binding}, Set: ${set}, Descriptor Type: ${typeName}\n`;
-				}
-
-				// 如果没有找到绑定信息，可能是输出格式不同
-				if (outputReflectionInfo === '; Descriptor Bindings:\n') {
-					// 尝试直接使用spirv-cross的输出
-					outputReflectionInfo += ';    (直接使用spirv-cross输出)\n';
-					outputReflectionInfo += stdout;
-				}
-
-				resolve(outputReflectionInfo);
+				resolve(stdout);
 			} catch (error) {
 				// 捕获同步执行的错误
 				reject(new Error(`执行spirv-cross失败: ${error.message}\n${error.stderr || ''}`));
@@ -242,11 +214,9 @@ class ShaderCrossViewProvider {
 				break;
 			case 'glsl':
 			case 'spir-v':
+			case 'msl':
 				outputFileName = 'output.spv';
 				args.push('-spirv');
-				break;
-			case 'msl':
-				outputFileName = 'output.msl';
 				break;
 			default:
 				vscode.window.showErrorMessage(`不支持的输出类型: ${message.outputType}`);
@@ -335,21 +305,19 @@ class ShaderCrossViewProvider {
 							this.dumpSpirVReflectionInfo(outputCompiledPath)
 								.then(reflectionInfo => {
 								// 将反射信息拼接到反编译结果尾部
-								disResult = disResult + '\n' + reflectionInfo;
+								disResult = disResult + '\n' + '// SPIR-V 反射信息:\n' + reflectionInfo;
 
-								result += `\n\nSPIR-V 反编译结果（含反射信息）已写入并打开: ${resultDissamblyPath}`;
+								// 反编译成功，将结果写入临时文件并打开
+								const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
+								fs.writeFileSync(resultDissamblyPath, disResult, 'utf8');
+								vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
+									vscode.window.showTextDocument(doc, { preview: false });
+								});
+
+								result += `\n\nSPIR-V 反编译结果已写入并打开: ${resultDissamblyPath}`;
 							}).catch(err => {
 								console.error(`提取SPIR-V反射信息失败: ${err.message}`);
 							});
-
-							// 反编译成功，将结果写入临时文件并打开
-							const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
-							fs.writeFileSync(resultDissamblyPath, disResult, 'utf8');
-							vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
-								vscode.window.showTextDocument(doc, { preview: false });
-							});
-
-							result += `\n\nSPIR-V 反编译结果已写入并打开: ${resultDissamblyPath}`;
 						} catch (disasmError) {
 							console.error(`spirv-dis 反编译失败: ${disasmError.message}`);
 						}
@@ -373,6 +341,22 @@ class ShaderCrossViewProvider {
 						}
 						break;
 					case 'msl':
+						// 使用spirv-cross反编译出MSL
+						try {
+							const spirvCrossPath = path.join(this.context.extensionPath, 'external', 'spirv-cross', 'spirv-cross.exe');
+							const spirvDisCmd = `"${spirvCrossPath}" "${outputCompiledPath}" --msl`;
+
+							const disStdout = execSync(spirvDisCmd, { encoding: 'utf8' });
+							const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
+							fs.writeFileSync(resultDissamblyPath, disStdout, 'utf8');
+							vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
+								vscode.window.showTextDocument(doc, { preview: false });
+							});
+							result += `\n\nMSL 反编译结果已写入并打开: ${resultDissamblyPath}`;
+						}
+						catch (disasmError) {
+							console.error(`spirv-cross 生成MSL失败: ${disasmError.message}`);
+						}
 						break;
 					default:
 						break;
