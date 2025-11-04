@@ -119,26 +119,69 @@ class ShaderCrossViewProvider {
 	}
 
 	getResultDissamblyFileName() {
-		return 'resultDissambly.txt';
+		return 'shadercross_resultDissambly.txt';
 	}
 
-	showResultDissambly(resultDissamblyContent, shaderFileBaseName) {
-		// 显示反编译结果
-		let newWindowName = `${shaderFileBaseName}_resultDissambly`;
-		// 如果newWindowName的窗口不存在，创建一个新的窗口
-		if (!vscode.window.visibleTextEditors.some(editor => editor.document.fileName === newWindowName)) {
-			let newDoc = vscode.workspace.openTextDocument({ language: 'plaintext', content: resultDissamblyContent });
-			newDoc.then(doc => {
-				vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.Beside });
+	saveAndShowResultDissamblyToTempFile(tmpDir, preprocessContent, showText) {
+		const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
+
+		// 写入到结果文件
+		fs.writeFileSync(resultDissamblyPath, preprocessContent, 'utf8');
+		// 打开结果文件到当前编辑器
+		vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
+			vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.Beside, preserveFocus: false });
+		});
+	}
+
+	showResultDissamblyToTempDoc(tmpDir, resultDissamblyContent, showText) {
+		const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
+
+		// 检查是否存在包含指定名称的临时文档
+		// 使用URI包含文件名或语言ID来识别临时文档，这样更可靠
+		const resultFileName = path.basename(resultDissamblyPath).toLowerCase();
+		let existingEditor = vscode.window.visibleTextEditors.find(editor => 
+			editor.document.uri.toString().toLowerCase().includes(resultFileName)
+		);
+
+		fs.writeFileSync(resultDissamblyPath, '', 'utf8');
+		
+		if (!existingEditor) {
+			// 创建新的临时文档，指定语言为plaintext，并设置文档名称为shadercross_resultDissambly
+			// 使用虚拟文档显示反编译结果，避免临时文件
+			vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
+				vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.Beside, preserveFocus: false });
+				// 将 doc 中的内容改为 resultDissamblyContent
+				const edit = new vscode.WorkspaceEdit();
+				const fullRange = new vscode.Range(
+					doc.positionAt(0),
+					doc.positionAt(doc.getText().length)
+				);
+				edit.replace(doc.uri, fullRange, resultDissamblyContent);
+				vscode.workspace.applyEdit(edit);
+
+				if (showText) {
+					this.findAndLocateCodeInDocument(doc, showText);
+				}
+			});
+		} else {
+			// 如果已存在临时文档窗口，则更新其内容
+			existingEditor.edit(edit => {
+				edit.replace(new vscode.Range(0, 0, existingEditor.document.lineCount, 0), resultDissamblyContent);
+
+				if (showText) {
+					this.findAndLocateCodeInDocument(existingEditor.document, showText);
+				}
 			});
 		}
-		else
-		{
-			// 将resultDissamblyContent的内容填入newWindowName的文档
-			vscode.workspace.openTextDocument({ language: 'plaintext', content: resultDissamblyContent }).then(doc => {
-				vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.Beside });
-			});
-		}
+	}
+
+	showResultDissambly(tmpDir, resultDissamblyContent, showText) {
+		// this.saveAndShowResultDissamblyToTempFile(tmpDir, preprocessContent);
+		this.showResultDissamblyToTempDoc(tmpDir, resultDissamblyContent, showText);
+	}
+
+	findAndLocateCodeInDocument(document, showText) {
+		return null;
 	}
 
 	// 编译着色器
@@ -264,7 +307,7 @@ class ShaderCrossViewProvider {
 		try {
 			// 记录编译开始时间
 			const startTime = Date.now();
-			const stdout = execSync(`${dxcPath} ${argCmd}`);
+			const stdout = execSync(`${dxcPath} ${argCmd}`, { encoding: 'utf8' });
 			const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
 
 			vscode.window.showInformationMessage(`着色器编译成功（${elapsed} 秒）`);
@@ -274,22 +317,12 @@ class ShaderCrossViewProvider {
 						// 使用dxc反编译DXIL
 						const dxilDisasmCmd = `"${dxcPath}" -dumpbin "${outputCompiledPath}"`;
 						try {
-							const disasmStdout = execSync(dxilDisasmCmd);
-
-							// 反编译成功，将结果写入临时文件并打开
-							const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
+							const disasmStdout = execSync(dxilDisasmCmd, { encoding: 'utf8' });
 							try {
-								fs.writeFileSync(resultDissamblyPath, disasmStdout, 'utf8');
-								// 打开反编译结果文件到当前编辑器
-								vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
-									vscode.window.showTextDocument(doc, { preview: false });
-								});
+								this.showResultDissambly(tmpDir, disasmStdout, '; Resource Bindings:');
 							} catch (writeError) {
 								console.error(`写入反编译结果失败: ${writeError.message}`);
 							}
-							// 更新结果信息
-							result += `\n\nDXIL 反编译结果已写入并打开: ${resultDissamblyPath}`;
-
 						} catch (disasmError) {
 							console.error(`反编译失败: ${disasmError.message}`);
 						}
@@ -297,17 +330,8 @@ class ShaderCrossViewProvider {
 					case 'hlsl-preprocess':
 						// HLSL预处理模式：直接读取预处理结果并打开
 						try {
-							const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
-							// 读取预处理后的文件内容
 							const preprocessContent = fs.readFileSync(outputCompiledPath, 'utf8');
-							// 写入到结果文件
-							fs.writeFileSync(resultDissamblyPath, preprocessContent, 'utf8');
-							// 打开结果文件到当前编辑器
-							vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
-								vscode.window.showTextDocument(doc, { preview: false });
-							});
-							// 更新结果信息
-							result += `\n\nHLSL 预处理结果已写入并打开: ${resultDissamblyPath}`;
+							this.showResultDissambly(tmpDir, preprocessContent, null);
 						} catch (readWriteError) {
 							console.error(`处理HLSL预处理结果失败: ${readWriteError.message}`);
 						}
@@ -326,15 +350,7 @@ class ShaderCrossViewProvider {
 								.then(reflectionInfo => {
 								// 将反射信息拼接到反编译结果尾部
 								disResult = disResult + '\n' + '// SPIR-V 反射信息:\n' + reflectionInfo;
-
-								// 反编译成功，将结果写入临时文件并打开
-								const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
-								fs.writeFileSync(resultDissamblyPath, disResult, 'utf8');
-								vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
-									vscode.window.showTextDocument(doc, { preview: false });
-								});
-
-								result += `\n\nSPIR-V 反编译结果已写入并打开: ${resultDissamblyPath}`;
+								this.showResultDissambly(tmpDir, disResult, '// SPIR-V 反射信息:');
 							}).catch(err => {
 								console.error(`提取SPIR-V反射信息失败: ${err.message}`);
 							});
@@ -349,12 +365,7 @@ class ShaderCrossViewProvider {
 							const spirvDisCmd = `"${spirvDisPath}" "${outputCompiledPath}" -V`;
 
 							const disStdout = execSync(spirvDisCmd, { encoding: 'utf8' });
-							const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
-							fs.writeFileSync(resultDissamblyPath, disStdout, 'utf8');
-							vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
-								vscode.window.showTextDocument(doc, { preview: false });
-							});
-							result += `\n\nGLSL 反编译结果已写入并打开: ${resultDissamblyPath}`;
+							this.showResultDissambly(tmpDir, disStdout, null);
 						}
 						catch (disasmError) {
 							console.error(`spirv-cross 反编译失败: ${disasmError.message}`);
@@ -367,12 +378,7 @@ class ShaderCrossViewProvider {
 							const spirvDisCmd = `"${spirvCrossPath}" "${outputCompiledPath}" --msl`;
 
 							const disStdout = execSync(spirvDisCmd, { encoding: 'utf8' });
-							const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
-							fs.writeFileSync(resultDissamblyPath, disStdout, 'utf8');
-							vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
-								vscode.window.showTextDocument(doc, { preview: false });
-							});
-							result += `\n\nMSL 反编译结果已写入并打开: ${resultDissamblyPath}`;
+							this.showResultDissambly(tmpDir, disStdout, null);
 						}
 						catch (disasmError) {
 							console.error(`spirv-cross 生成MSL失败: ${disasmError.message}`);
@@ -498,7 +504,7 @@ class ShaderCrossViewProvider {
 		try {
 			// 记录编译开始时间
 			const startTime = Date.now();
-			const stdout = execSync(`"${fxcPath}" ${argCmd}`);
+			const stdout = execSync(`"${fxcPath}" ${argCmd}`, { encoding: 'utf8' });
 			const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
 
 			vscode.window.showInformationMessage(`着色器编译成功（${elapsed} 秒）`);
@@ -511,14 +517,7 @@ class ShaderCrossViewProvider {
 
 						// 读取预处理后的文件内容
 						const preprocessContent = fs.readFileSync(outputCompiledPath, 'utf8');
-						// 写入到结果文件
-						fs.writeFileSync(resultDissamblyPath, preprocessContent, 'utf8');
-						// 打开结果文件到当前编辑器
-						vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
-							vscode.window.showTextDocument(doc, { preview: false });
-						});
-						// 更新结果信息
-						result += `\n\nHLSL 预处理结果已写入并打开: ${resultDissamblyPath}`;
+						this.showResultDissambly(tmpDir, preprocessContent, null);
 					} catch (readWriteError) {
 						console.error(`处理HLSL预处理结果失败: ${readWriteError.message}`);
 					}
@@ -527,22 +526,8 @@ class ShaderCrossViewProvider {
 					// 使用fxc反编译FXC字节码
 					const fxcDisasmCmd = `"${fxcPath}" /dumpbin "${outputCompiledPath}"`;
 					try {
-						const disasmStdout = execSync(fxcDisasmCmd);
-
-						// 反编译成功，将结果写入临时文件并打开
-						const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
-						try {
-							fs.writeFileSync(resultDissamblyPath, disasmStdout, 'utf8');
-							// 打开反编译结果文件到当前编辑器
-							vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
-								vscode.window.showTextDocument(doc, { preview: false });
-							});
-						} catch (writeError) {
-							console.error(`写入反编译结果失败: ${writeError.message}`);
-						}
-						// 更新结果信息
-						result += `\n\nFXC 反编译结果已写入并打开: ${resultDissamblyPath}`;
-
+						const disasmStdout = execSync(fxcDisasmCmd, { encoding: 'utf8' });
+						this.showResultDissambly(tmpDir, disasmStdout, '// Resource Bindings:');
 					} catch (disasmError) {
 						console.error(`反编译失败: ${disasmError.message}`);
 					}
@@ -689,7 +674,7 @@ class ShaderCrossViewProvider {
 		try {
 			// 记录编译开始时间
 			const startTime = Date.now();
-			const stdout = execSync(`${glslangPath} ${argCmd}`);
+			const stdout = execSync(`${glslangPath} ${argCmd}`, { encoding: 'utf8' });
 			const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
 
 			vscode.window.showInformationMessage(`着色器编译成功（${elapsed} 秒）`);
@@ -709,15 +694,7 @@ class ShaderCrossViewProvider {
 								.then(reflectionInfo => {
 								// 将反射信息拼接到反编译结果尾部
 								disResult = disResult + '\n' + '// SPIR-V 反射信息:\n' + reflectionInfo;
-
-								// 反编译成功，将结果写入临时文件并打开
-								const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
-								fs.writeFileSync(resultDissamblyPath, disResult, 'utf8');
-								vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
-									vscode.window.showTextDocument(doc, { preview: false });
-								});
-
-								result += `\n\nSPIR-V 反编译结果已写入并打开: ${resultDissamblyPath}`;
+								this.showResultDissambly(tmpDir, disResult, '// SPIR-V 反射信息:');
 							});
 					} catch (spirvDisError) {
 						vscode.window.showErrorMessage(`SPIR-V 反编译失败: ${spirvDisError.message}`);
@@ -732,12 +709,7 @@ class ShaderCrossViewProvider {
 						const spirvDisCmd = `"${spirvDisPath}" "${outputCompiledPath}" -V`;
 
 						const disStdout = execSync(spirvDisCmd, { encoding: 'utf8' });
-						const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
-						fs.writeFileSync(resultDissamblyPath, disStdout, 'utf8');
-						vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
-							vscode.window.showTextDocument(doc, { preview: false });
-						});
-						result += `\n\nGLSL 反编译结果已写入并打开: ${resultDissamblyPath}`;
+						this.showResultDissambly(tmpDir, disStdout, null);
 					}
 					catch (disasmError) {
 						console.error(`spirv-cross 反编译失败: ${disasmError.message}`);
@@ -750,12 +722,7 @@ class ShaderCrossViewProvider {
 						const spirvDisCmd = `"${spirvCrossPath}" "${outputCompiledPath}" --msl`;
 
 						const disStdout = execSync(spirvDisCmd, { encoding: 'utf8' });
-						const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
-						fs.writeFileSync(resultDissamblyPath, disStdout, 'utf8');
-						vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
-							vscode.window.showTextDocument(doc, { preview: false });
-						});
-						result += `\n\nMSL 反编译结果已写入并打开: ${resultDissamblyPath}`;
+						this.showResultDissambly(tmpDir, disStdout, null);
 					}
 					catch (disasmError) {
 						console.error(`spirv-cross 生成MSL失败: ${disasmError.message}`);
@@ -768,12 +735,7 @@ class ShaderCrossViewProvider {
 						const spirvDisCmd = `"${spirvCrossPath}" "${outputCompiledPath}" --hlsl`;
 
 						const disStdout = execSync(spirvDisCmd, { encoding: 'utf8' });
-						const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
-						fs.writeFileSync(resultDissamblyPath, disStdout, 'utf8');
-						vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
-							vscode.window.showTextDocument(doc, { preview: false });
-						});
-						result += `\n\nHLSL 反编译结果已写入并打开: ${resultDissamblyPath}`;
+						this.showResultDissambly(tmpDir, disStdout, null);
 					}
 					catch (disasmError) {
 						console.error(`spirv-cross 生成HLSL失败: ${disasmError.message}`);
@@ -801,6 +763,13 @@ class ShaderCrossViewProvider {
 					console.error(`Failed to create temporary output directory: ${mkdirError.message}`); // 输出到终端
 					return;
 				}
+			}
+
+			// 如果当前活动编辑器中的文档是反编译结果临时文件，则跳过生成并提示
+			const activeEditor = vscode.window.activeTextEditor;
+			if (activeEditor && activeEditor.document.fileName.endsWith(this.getResultDissamblyFileName())) {
+				vscode.window.showWarningMessage(`请选择有效的 Shader 文件，当前窗口为 ${this.getResultDissamblyFileName()}`);
+				return;
 			}
 
 			// 根据编译器类型选择编译函数
