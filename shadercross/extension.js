@@ -240,13 +240,14 @@ class ShaderCrossViewProvider {
 
 		// 执行dxc.exe
 		const { execSync } = require('child_process');
-		// 记录编译开始时间
-		const startTime = Date.now();
 
 		let result = '';
 		try {
+			// 记录编译开始时间
+			const startTime = Date.now();
 			const stdout = execSync(`${dxcPath} ${argCmd}`);
 			const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+
 			vscode.window.showInformationMessage(`着色器编译成功（${elapsed} 秒）`);
 
 			switch (message.outputType.toLowerCase()) {
@@ -373,6 +374,171 @@ class ShaderCrossViewProvider {
 
 	// 编译着色器
 	comileShader_fxc(tmpDir, message, webviewView) {
+		// 获取fxc.exe路径
+		const fxcPath = path.join(this.context.extensionPath, 'external', 'fxc', 'fxc.exe');
+
+		// 构建编译参数
+		const args = [];
+
+		// 获取当前活动编辑器中的着色器文件路径
+		const activeEditor = vscode.window.activeTextEditor;
+		if (!activeEditor) {
+			vscode.window.showErrorMessage('未找到活动的编辑器，请先打开一个着色器文件。');
+			return;
+		}
+
+		// 定义输出文件名
+		let bHLSLPreprocess = false;
+		let outputFileName;
+		switch (message.outputType.toLowerCase()) {
+			case 'hlsl-preprocess':
+				outputFileName = 'output.hlsl';
+				bHLSLPreprocess = true;
+				break;
+			case 'dxbc':
+				outputFileName = 'output.fxo';
+				break;
+			default:
+				vscode.window.showErrorMessage(`fxc 不支持的输出类型: ${message.outputType}`);
+				return;
+		}
+
+		if (!bHLSLPreprocess)
+		{
+			// 添加着色器模型参数
+			args.push(`/T ${message.shaderType}_${message.shaderMode}`);
+		}
+
+		// 添加入口点参数
+		args.push(`/E ${message.entryPoint || 'main'}`); // 入口点，默认为main
+
+		// 添加宏定义
+		if (message.macros && message.macros.length > 0) {
+			message.macros.forEach(macro => {
+				args.push(`/D ${macro}`);
+			});
+		}
+
+		// 获取当前活动编辑器中的着色器文件路径
+		const dstFilePath = activeEditor.document.uri.fsPath;
+
+		// 如果当前活动编辑器中的内容存在修改且没有存盘，则把当前内容存盘到临时目录的同名着色器文件
+		let shaderFilePath = dstFilePath;
+		let tempShaderFilePath;
+
+		if (activeEditor.document.isDirty) {
+			const shaderFileName = path.basename(dstFilePath);
+			tempShaderFilePath = path.join(tmpDir, shaderFileName);
+			try {
+				fs.writeFileSync(tempShaderFilePath, activeEditor.document.getText(), 'utf8');
+				shaderFilePath = tempShaderFilePath;
+			} catch (writeError) {
+				vscode.window.showErrorMessage(`无法将未保存的着色器写入临时文件: ${writeError.message}`);
+				console.error(`Failed to write unsaved shader to temp file: ${writeError.message}`);
+				return;
+			}
+		}
+
+		// 添加Include路径
+		if (message.includePaths && message.includePaths.length > 0) {
+			message.includePaths.forEach(includePath => {
+				// 检查是否为相对路径，如果是则转换为相对于dstFilePath的绝对路径
+				let resolvedPath = includePath;
+				const shaderDirPath = path.dirname(dstFilePath);
+
+				// 如果不是绝对路径，则将其解析为相对于dstFilePath的绝对路径
+				if (!path.isAbsolute(includePath)) {
+					resolvedPath = path.resolve(shaderDirPath, includePath);
+				}
+
+				args.push(`/I ${resolvedPath}`);
+			});
+		}
+
+		// 临时输出路径
+		const outputCompiledPath = path.join(tmpDir, outputFileName);
+		if (!bHLSLPreprocess) {
+			args.push(`/Fo ${outputCompiledPath}`);
+		}
+		else
+		{
+			args.push(`/P ${outputCompiledPath}`);
+		}
+
+		args.push(shaderFilePath); // 添加输入文件路径
+
+		const argCmd = args.join(' ');
+
+		// 输出编译命令信息
+		vscode.window.showInformationMessage(`执行编译: fxc ${argCmd}`);
+
+		// 执行fxc.exe
+		const { execSync } = require('child_process');
+
+		let result = '';
+		try {
+			// 记录编译开始时间
+			const startTime = Date.now();
+			const stdout = execSync(`"${fxcPath}" ${argCmd}`);
+			const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+
+			vscode.window.showInformationMessage(`着色器编译成功（${elapsed} 秒）`);
+
+			switch (message.outputType.toLowerCase()) {
+				case 'hlsl-preprocess':
+					// HLSL预处理模式：直接读取预处理结果并打开
+					try {
+						const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
+
+						// 读取预处理后的文件内容
+						const preprocessContent = fs.readFileSync(outputCompiledPath, 'utf8');
+						// 写入到结果文件
+						fs.writeFileSync(resultDissamblyPath, preprocessContent, 'utf8');
+						// 打开结果文件到当前编辑器
+						vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
+							vscode.window.showTextDocument(doc, { preview: false });
+						});
+						// 更新结果信息
+						result += `\n\nHLSL 预处理结果已写入并打开: ${resultDissamblyPath}`;
+					} catch (readWriteError) {
+						console.error(`处理HLSL预处理结果失败: ${readWriteError.message}`);
+					}
+					break;
+				case 'dxbc':
+					// 使用fxc反编译FXC字节码
+					const fxcDisasmCmd = `"${fxcPath}" /dumpbin "${outputCompiledPath}"`;
+					try {
+						const disasmStdout = execSync(fxcDisasmCmd);
+
+						// 反编译成功，将结果写入临时文件并打开
+						const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
+						try {
+							fs.writeFileSync(resultDissamblyPath, disasmStdout, 'utf8');
+							// 打开反编译结果文件到当前编辑器
+							vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
+								vscode.window.showTextDocument(doc, { preview: false });
+							});
+						} catch (writeError) {
+							console.error(`写入反编译结果失败: ${writeError.message}`);
+						}
+						// 更新结果信息
+						result += `\n\nFXC 反编译结果已写入并打开: ${resultDissamblyPath}`;
+
+					} catch (disasmError) {
+						console.error(`反编译失败: ${disasmError.message}`);
+					}
+					break;
+				default:
+					break;
+			}
+		} catch (error) {
+			result = `编译失败: ${error.message}\n\n${error.stderr || ''}\n\n`;
+			vscode.window.showErrorMessage(`着色器编译失败`);
+			console.error(result);
+		}
+
+		// 删除临时编译输出文件
+		this.deleteTempFiles([outputCompiledPath, tempShaderFilePath]);
 	}
 
 	// 编译着色器
