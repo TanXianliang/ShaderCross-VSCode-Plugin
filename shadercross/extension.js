@@ -8,6 +8,9 @@ const fs = require('fs');
 class ShaderCrossViewProvider {
 	constructor(context) {
 		this.context = context;
+		// 初始化配置存储
+		this.configurationKey = 'shaderCross.lastUsedSettings';
+		// 直接使用context.globalState
 	}
 
 	// 这个方法在VS Code需要显示视图时被调用
@@ -30,15 +33,94 @@ class ShaderCrossViewProvider {
 							message,
 							webviewView
 						);
+						// 保存配置
+						this.saveConfiguration(message);
 						return;
 					case 'openIncludeFloderDialg':
 						this.openIncludeFloderDialg(webviewView);
+						return;
+					case 'saveConfiguration':
+						this.saveConfiguration(message.config);
 						return;
 				}
 			},
 			undefined,
 			this.context.subscriptions
 		);
+
+		// 视图显示后发送保存的配置
+		webviewView.onDidChangeVisibility(() => {
+			if (webviewView.visible) {
+				const savedConfig = this.getSavedConfiguration();
+				if (savedConfig) {
+					webviewView.webview.postMessage({
+						command: 'restoreConfiguration',
+						config: savedConfig
+					});
+				}
+			}
+		});
+		
+		// 立即尝试发送配置
+		if (webviewView.visible) {
+			const savedConfig = this.getSavedConfiguration();
+			if (savedConfig) {
+				webviewView.webview.postMessage({
+					command: 'restoreConfiguration',
+					config: savedConfig
+				});
+			}
+		}
+	}
+
+	// 保存配置到VS Code存储
+	saveConfiguration(config) {
+		try {
+			// 清理和验证配置数据，移除空值和无效数据
+			const configurationToSave = {
+				compiler: config.compiler || '',
+				shaderType: config.shaderType || '',
+				shaderMode: config.shaderMode || '',
+				outputType: config.outputType || '',
+				entryPoint: config.entryPoint || '',
+				additionalOptionEnabled: !!config.additionalOptionEnabled,
+				additionalOption: config.additionalOption || '',
+				shaderLanguage: config.shaderLanguage || '',
+				macros: Array.isArray(config.macros) ? config.macros.filter(m => m && m.trim()) : [],
+				includePaths: Array.isArray(config.includePaths) ? config.includePaths.filter(p => p && p.trim()) : []
+			};
+			
+			// 使用VS Code的全局状态存储
+			this.context.globalState.update(this.configurationKey, configurationToSave);
+		} catch (error) {
+			console.error('Failed to save configuration:', error.message);
+		}
+	}
+
+	// 从VS Code存储获取保存的配置
+	getSavedConfiguration() {
+		try {
+			const savedConfig = this.context.globalState.get(this.configurationKey);
+			if (savedConfig) {
+				// 确保返回的配置对象具有所有必要的字段，避免UI错误
+				return {
+					compiler: savedConfig.compiler || '',
+					shaderType: savedConfig.shaderType || '',
+					shaderMode: savedConfig.shaderMode || '',
+					outputType: savedConfig.outputType || '',
+					entryPoint: savedConfig.entryPoint || '',
+					additionalOptionEnabled: !!savedConfig.additionalOptionEnabled,
+					additionalOption: savedConfig.additionalOption || '',
+					shaderLanguage: savedConfig.shaderLanguage || '',
+					macros: Array.isArray(savedConfig.macros) ? savedConfig.macros : [],
+					includePaths: Array.isArray(savedConfig.includePaths) ? savedConfig.includePaths : []
+				};
+			}
+			return null;
+		} catch (error) {
+			console.error('Failed to get saved configuration:', error.message);
+			return null;
+		}
 	}
 
 	deleteTempFiles(filePathArray) {

@@ -407,7 +407,7 @@
 			macroItem.style.alignItems = 'center';
 			macroItem.style.gap = '12px';
 			macroItem.style.padding = '4px 0';
-				
+			
 			// 创建宏值显示（可编辑）
 			const macroValueEl = document.createElement('div');
 			macroValueEl.className = 'macro-value';
@@ -440,8 +440,25 @@
 				}
 			});
 			
-			// 添加失去焦点事件以恢复占位符
-			macroValueEl.addEventListener('blur', updatePlaceholder);
+			// 添加失去焦点事件以恢复占位符并保存配置
+			macroValueEl.addEventListener('blur', function() {
+				updatePlaceholder();
+				// 失焦后保存配置
+				saveCurrentConfiguration();
+			});
+			
+			// 添加键盘事件，支持Enter保存
+			macroValueEl.addEventListener('keydown', function(event) {
+				if (event.key === 'Enter') {
+					event.preventDefault();
+					macroValueEl.blur();
+					// Enter后保存配置
+					saveCurrentConfiguration();
+				} else if (event.key === 'Escape') {
+					event.preventDefault();
+					macroValueEl.blur();
+				}
+			});
 			
 			// 使元素可编辑
 			macroValueEl.contentEditable = true;
@@ -456,9 +473,11 @@
 			removeButton.style.padding = '4px';
 			removeButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
 
-			// 添加删除事件
+			// 添加删除事件并保存配置
 			removeButton.addEventListener('click', function() {
 				macroItem.remove();
+				// 删除后保存配置
+				saveCurrentConfiguration();
 			});
 			
 			// 添加到列表
@@ -468,6 +487,8 @@
 			
 			// 自动聚焦到新创建的宏项
 			macroValueEl.click();
+			// 添加新宏项后保存配置
+			saveCurrentConfiguration();
 		});
 		
 		// 为现有删除按钮添加点击事件
@@ -562,17 +583,206 @@
 				// 添加删除事件
 				removeButton.addEventListener('click', function() {
 					includePathItem.remove();
+					// 删除后保存配置
+					saveCurrentConfiguration();
 				});
 				
 				// 添加到列表
 				includePathItem.appendChild(includePathValueEl);
 				includePathItem.appendChild(removeButton);
-						document.querySelector('.include-path-list').appendChild(includePathItem);
-					} else if (message.command === 'compileResult' && message.result) {
-						// TODO
+				document.querySelector('.include-path-list').appendChild(includePathItem);
+				// 添加后保存配置
+				saveCurrentConfiguration();
+			} else if (message.command === 'compileResult' && message.result) {
+				// TODO
+			} else if (message.command === 'restoreConfiguration' && message.config) {
+				// 恢复保存的配置
+				restoreConfiguration(message.config);
+			}
+		});
+
+		// 恢复配置函数
+		function restoreConfiguration(config) {
+			console.log('恢复配置开始...', config);
+			// 恢复基本选择项
+			if (config.compiler) document.querySelector('.compiler-select').value = config.compiler;
+			if (config.shaderType) document.querySelector('.shader-type-select').value = config.shaderType;
+			if (config.shaderMode) document.querySelector('.shader-mode-select').value = config.shaderMode;
+			if (config.outputType) document.querySelector('.output-type-select').value = config.outputType;
+			if (config.entryPoint) document.querySelector('.entry-point-input').value = config.entryPoint;
+			if (config.additionalOptionEnabled !== undefined) document.querySelector('.additional-option-checkbox').checked = config.additionalOptionEnabled;
+			if (config.additionalOption) document.querySelector('.additional-option-input').value = config.additionalOption;
+			if (config.shaderLanguage) document.querySelector('.shader-language-select').value = config.shaderLanguage;
+
+			// 恢复宏定义
+			if (config.macros && Array.isArray(config.macros)) {
+				const macroList = document.querySelector('.macro-list');
+				// 清空现有宏列表（保留占位符或不保留，根据需要调整）
+				macroList.innerHTML = '';
+
+				config.macros.forEach(macroValue => {
+					if (macroValue && macroValue.trim()) {
+						// 创建宏定义项
+						const macroItem = document.createElement('div');
+						macroItem.className = 'macro-item';
+						macroItem.style.display = 'flex';
+						macroItem.style.alignItems = 'center';
+						macroItem.style.gap = '12px';
+						macroItem.style.padding = '4px 0';
+
+						const macroValueEl = document.createElement('div');
+						macroValueEl.className = 'macro-value';
+						macroValueEl.style.flexGrow = '1';
+						macroValueEl.style.padding = '4px 8px';
+						macroValueEl.style.border = '1px solid var(--border-color)';
+						macroValueEl.style.borderRadius = '4px';
+						macroValueEl.style.backgroundColor = 'var(--primary-bg)';
+						macroValueEl.textContent = macroValue;
+						macroValueEl.setAttribute('data-placeholder', 'Example: NAME=VALUE');
+						macroValueEl.contentEditable = true;
+
+						// 添加占位符逻辑
+						function updatePlaceholder() {
+							if (macroValueEl.textContent.trim() === '') {
+								macroValueEl.style.color = 'var(--text-muted)';
+								macroValueEl.textContent = macroValueEl.getAttribute('data-placeholder');
+							} else {
+								macroValueEl.style.color = 'var(--text-color)';
+							}
+						}
+
+						macroValueEl.addEventListener('blur', function() {
+							updatePlaceholder();
+							saveCurrentConfiguration();
+						});
+
+						const removeButton = document.createElement('button');
+						removeButton.className = 'remove-macro-button';
+						removeButton.style.backgroundColor = 'transparent';
+						removeButton.style.border = 'none';
+						removeButton.style.color = 'var(--text-muted)';
+						removeButton.style.cursor = 'pointer';
+						removeButton.style.padding = '4px';
+						removeButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+						removeButton.addEventListener('click', function() {
+							macroItem.remove();
+							saveCurrentConfiguration();
+						});
+
+						macroItem.appendChild(macroValueEl);
+						macroItem.appendChild(removeButton);
+						macroList.appendChild(macroItem);
 					}
 				});
+			}
+
+			// 恢复包含路径
+			if (config.includePaths && Array.isArray(config.includePaths)) {
+				const includePathList = document.querySelector('.include-path-list');
+				// 清空现有包含路径列表（保留占位符或不保留，根据需要调整）
+				includePathList.innerHTML = '';
+
+				config.includePaths.forEach(pathValue => {
+					if (pathValue && pathValue.trim()) {
+						// 创建Include Path项
+						const includePathItem = document.createElement('div');
+						includePathItem.className = 'include-path-item';
+						includePathItem.style.display = 'flex';
+						includePathItem.style.alignItems = 'center';
+						includePathItem.style.gap = '12px';
+						includePathItem.style.padding = '4px 0';
+
+						const includePathValueEl = document.createElement('div');
+						includePathValueEl.className = 'include-path-value';
+						includePathValueEl.style.flexGrow = '1';
+						includePathValueEl.style.padding = '4px 8px';
+						includePathValueEl.style.border = '1px solid var(--border-color)';
+						includePathValueEl.style.borderRadius = '4px';
+						includePathValueEl.style.backgroundColor = 'var(--primary-bg)';
+						includePathValueEl.textContent = pathValue;
+
+						const removeButton = document.createElement('button');
+						removeButton.className = 'remove-include-path-button';
+						removeButton.style.backgroundColor = 'transparent';
+						removeButton.style.border = 'none';
+						removeButton.style.color = 'var(--text-muted)';
+						removeButton.style.cursor = 'pointer';
+						removeButton.style.padding = '4px';
+						removeButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+						removeButton.addEventListener('click', function() {
+							includePathItem.remove();
+							saveCurrentConfiguration();
+						});
+
+						includePathItem.appendChild(includePathValueEl);
+						includePathItem.appendChild(removeButton);
+						includePathList.appendChild(includePathItem);
+					}
+				});
+			}
+		}
+
+		// 保存当前配置函数
+		function saveCurrentConfiguration() {
+			console.log('保存配置开始...');
+			// 获取所有配置项
+			const compilerSelect = document.querySelector('.compiler-select');
+			const shaderTypeSelect = document.querySelector('.shader-type-select');
+			const shaderModeSelect = document.querySelector('.shader-mode-select');
+			const outputTypeSelect = document.querySelector('.output-type-select');
+			const entryPointInput = document.querySelector('.entry-point-input');
+			const additionalOptionCheckbox = document.querySelector('.additional-option-checkbox');
+			const additionalOptionInput = document.querySelector('.additional-option-input');
+			const shaderLanguageSelect = document.querySelector('.shader-language-select');
+			
+			// 获取宏定义
+			const macroItems = document.querySelectorAll('.macro-item .macro-value');
+			const macros = Array.from(macroItems).map(item => {
+				const text = item.textContent.trim();
+				const placeholder = item.getAttribute('data-placeholder');
+				return text !== placeholder ? text : '';
+			}).filter(text => text);
+			
+			// 获取包含路径
+			const includePathItems = document.querySelectorAll('.include-path-item .include-path-value');
+			const includePaths = Array.from(includePathItems).map(item => item.textContent.trim()).filter(path => path);
+			
+			// 构建配置对象
+			const currentConfig = {
+				compiler: compilerSelect.value,
+				shaderType: shaderTypeSelect.value,
+				shaderMode: shaderModeSelect.value,
+				outputType: outputTypeSelect.value,
+				entryPoint: entryPointInput.value.trim(),
+				additionalOptionEnabled: additionalOptionCheckbox.checked,
+				additionalOption: additionalOptionInput.value.trim(),
+				shaderLanguage: shaderLanguageSelect.value,
+				macros: macros,
+				includePaths: includePaths
+			};
+			
+			// 发送配置到扩展保存
+			vscode.postMessage({
+				command: 'saveConfiguration',
+				config: currentConfig
 			});
+		}
+
+		// 为所有选择框和输入框添加变更事件，自动保存配置
+		document.querySelectorAll('select, input[type="text"], input[type="checkbox"]').forEach(element => {
+			element.addEventListener('change', saveCurrentConfiguration);
+		});
+
+		// 修改宏定义添加按钮，添加后保存配置
+		document.querySelector('.add-macro-button').addEventListener('click', function(originalEvent) {
+			// 保存原始的事件处理函数
+			const originalHandler = function() {
+				// 原始逻辑已经在DOMContentLoaded中设置
+				// 这里我们只需要确保在添加后保存配置
+				setTimeout(saveCurrentConfiguration, 100); // 延迟保存，确保DOM更新完成
+			};
+			originalHandler.apply(this, arguments);
+		});
 		
 		// 为现有删除按钮添加点击事件
 		document.querySelectorAll('.remove-include-path-button').forEach(button => {
@@ -621,7 +831,7 @@
 				});
 			}
 		});
-// 此选择中的单个 `}` 是多余的，推测是代码编辑时的错误，此处移除
+	});
 </script>
 </body>
 </html>
