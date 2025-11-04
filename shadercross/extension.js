@@ -4,7 +4,6 @@ const vscode = require('vscode');
 const path = require('path');
 const fs = require('fs');
 
-
 // 视图提供者类
 class ShaderCrossViewProvider {
 	constructor(context) {
@@ -42,185 +41,276 @@ class ShaderCrossViewProvider {
 		);
 	}
 
-	comileShader_dxc(message, webviewView) {
-		// 获取dxc.exe路径
-			const dxcPath = path.join(this.context.extensionPath, 'external', 'dxc', 'bin', 'x64', 'dxc.exe');
+	deleteTempFiles(filePathArray) {
+		try {
+			if (!Array.isArray(filePathArray)) return;
+			filePathArray.forEach(filePath => {
+				if (filePath && fs.existsSync(filePath)) {
+					fs.unlinkSync(filePath);
+				}
+			});
+		} catch (cleanupError) {
+			console.warn(`删除临时文件失败: ${cleanupError.message}`);
+		}
+	}
 
-			// 构建编译参数
-			const args = [];
+	getResultDissamblyFileName() {
+		return 'resultDissambly.txt';
+	}
 
-			// 获取当前活动编辑器中的着色器文件路径
-			const activeEditor = vscode.window.activeTextEditor;
-			if (!activeEditor) {
-				vscode.window.showErrorMessage('No active editor found. Please open a shader file first.');
+	// 编译着色器
+	comileShader_dxc(tmpDir, message, webviewView) {
+	// 获取dxc.exe路径
+		const dxcPath = path.join(this.context.extensionPath, 'external', 'dxc', 'bin', 'x64', 'dxc.exe');
+
+		// 构建编译参数
+		const args = [];
+
+		// 获取当前活动编辑器中的着色器文件路径
+		const activeEditor = vscode.window.activeTextEditor;
+		if (!activeEditor) {
+			vscode.window.showErrorMessage('未找到活动的编辑器，请先打开一个着色器文件。');
+			return;
+		}
+
+		// 添加着色器模型参数
+		args.push(`-T ${message.shaderType}_${message.shaderMode}`);
+
+		// 添加入口点参数
+		args.push(`-E ${message.entryPoint || 'main'}`); // 入口点，默认为main
+
+		// 添加宏定义
+		if (message.macros && message.macros.length > 0) {
+			message.macros.forEach(macro => {
+				args.push(`-D ${macro}`);
+			});
+		}
+
+		// 获取当前活动编辑器中的着色器文件路径
+		const dstFilePath = activeEditor.document.uri.fsPath;
+
+		// 如果当前活动编辑器中的内容存在修改且没有存盘，则把当前内容存盘到临时目录的同名着色器文件
+		let shaderFilePath = dstFilePath;
+		let tempShaderFilePath;
+
+		if (activeEditor.document.isDirty) {
+			const shaderFileName = path.basename(dstFilePath);
+			tempShaderFilePath = path.join(tmpDir, shaderFileName);
+			try {
+				fs.writeFileSync(tempShaderFilePath, activeEditor.document.getText(), 'utf8');
+				shaderFilePath = tempShaderFilePath;
+			} catch (writeError) {
+				vscode.window.showErrorMessage(`无法将未保存的着色器写入临时文件: ${writeError.message}`);
+				console.error(`Failed to write unsaved shader to temp file: ${writeError.message}`);
 				return;
 			}
+		}
+		
+		// 添加Include路径
+		if (message.includePaths && message.includePaths.length > 0) {
+			message.includePaths.forEach(includePath => {
+				// 检查是否为相对路径，如果是则转换为相对于dstFilePath的绝对路径
+				let resolvedPath = includePath;
+				const shaderDirPath = path.dirname(dstFilePath);
+				
+				// 如果不是绝对路径，则将其解析为相对于dstFilePath的绝对路径
+				if (!path.isAbsolute(includePath)) {
+					resolvedPath = path.resolve(shaderDirPath, includePath);
+				}
+				
+				args.push(`-I ${resolvedPath}`);
+			});
+		}
 
-			// 添加着色器模型参数
-			args.push(`-T ${message.shaderType}_${message.shaderMode}`);
+		// 添加额外选项
+		if (message.additionalOptionEnabled && message.additionalOption) {
+			args.push(message.additionalOption);
+		}
 
-			// 添加入口点参数
-			args.push(`-E ${message.entryPoint || 'main'}`); // 入口点，默认为main
+		let bHlslPreprocess = false;
+		// 根据outputType定义输出文件名
+		let outputFileName;
+		switch (message.outputType.toLowerCase()) {
+			case 'dxil':
+				outputFileName = 'output.dxil';
+				break;
+			case 'hlsl':
+				outputFileName = 'output.hlsl';
+				if (message.shaderLanguage != 'hlsl2021') {
+					args.push('-HV 2016');
+				}
+				break;
+			case 'hlsl-preprocess':
+				outputFileName = 'output.hlsl';
+				if (message.shaderLanguage != 'hlsl2021') {
+					args.push('-HV 2016');
+				}
+				args.push('-P');
+				bHlslPreprocess = true;
+				break;
+			case 'glsl':
+				outputFileName = 'output.glsl';
+				args.push('-spirv');
+				break;
+			case 'spirv':
+				outputFileName = 'output.spv';
+				args.push('-spirv');
+				break;
+			case 'msl':
+				outputFileName = 'output.msl';
+				break;
+			default:
+				vscode.window.showErrorMessage(`不支持的输出类型: ${message.outputType}`);
+				return;
+		}
 
-			// 添加宏定义
-			if (message.macros && message.macros.length > 0) {
-				message.macros.forEach(macro => {
-					args.push(`-D ${macro}`);
-				});
+		// 临时输出路径
+		const outputCompiledPath = path.join(tmpDir, outputFileName);
+
+		if (bHlslPreprocess)
+			args.push(`-Fi ${outputCompiledPath}`);
+		else
+			args.push(`-Fo ${outputCompiledPath}`);
+
+		args.push(shaderFilePath); // 添加输入文件路径
+
+		const argCmd = args.join(' ');
+
+		// 输出编译命令信息
+		vscode.window.showInformationMessage(`执行编译: dxc ${argCmd}`);
+
+		// 执行dxc.exe
+		const { exec } = require('child_process');
+		// 记录编译开始时间
+		const startTime = Date.now();
+
+		exec(`${dxcPath} ${argCmd}`, (error, stdout, stderr) => {
+			// 计算耗时
+			const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+
+			let result = '';
+			if (error) {
+				result = `编译失败: ${error.message}\n\n${stderr}\n\n耗时: ${elapsed} 秒`;
+				vscode.window.showErrorMessage(`着色器编译失败（${elapsed} 秒）`);
+				console.error(result);
+
+				// 删除临时编译输出文件
+				this.deleteTempFiles([outputCompiledPath, tempShaderFilePath]);
+			} else {
+				result = `编译成功!\n\n${stdout}\n\n耗时: ${elapsed} 秒`;
+				vscode.window.showInformationMessage(`着色器编译成功（${elapsed} 秒）`);
+
+				switch (message.outputType.toLowerCase()) {
+					case 'dxil':
+						// 使用dxc反编译DXIL
+						const dxilDisasmCmd = `"${dxcPath}" -dumpbin "${outputCompiledPath}"`;
+						const { exec } = require('child_process');
+						exec(dxilDisasmCmd, (disasmError, disasmStdout, disasmStderr) => {
+							if (disasmError) {
+								console.error(`反编译DXIL失败: ${disasmError.message}`);
+							} else {
+								// 反编译成功，将结果写入临时文件并打开
+								const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
+								try {
+									fs.writeFileSync(resultDissamblyPath, disasmStdout, 'utf8');
+									// 打开反编译结果文件到当前编辑器
+									vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
+										vscode.window.showTextDocument(doc, { preview: false });
+									});
+								} catch (writeError) {
+									console.error(`写入反编译结果失败: ${writeError.message}`);
+								}
+								// 更新结果信息
+								result += `\n\nDXIL 反编译结果已写入并打开: ${resultDissamblyPath}`;
+							}
+							// 发送更新后的结果到webview
+							webviewView.webview.postMessage({
+								command: 'compileResult',
+								result: result
+							});
+							
+							// 删除临时编译输出文件
+							this.deleteTempFiles([outputCompiledPath, tempShaderFilePath]);
+						});
+						break;
+					case 'hlsl-preprocess':
+						// HLSL预处理模式：直接读取预处理结果并打开
+						try {
+							const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
+							// 读取预处理后的文件内容
+							const preprocessContent = fs.readFileSync(outputCompiledPath, 'utf8');
+							// 写入到结果文件
+							fs.writeFileSync(resultDissamblyPath, preprocessContent, 'utf8');
+							// 打开结果文件到当前编辑器
+							vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
+								vscode.window.showTextDocument(doc, { preview: false });
+							});
+							// 更新结果信息
+							result += `\n\nHLSL 预处理结果已写入并打开: ${resultDissamblyPath}`;
+						} catch (readWriteError) {
+							console.error(`处理HLSL预处理结果失败: ${readWriteError.message}`);
+						}
+						// 发送更新后的结果到webview
+						webviewView.webview.postMessage({
+							command: 'compileResult',
+							result: result
+						});
+						// 删除临时编译输出文件
+						this.deleteTempFiles([outputCompiledPath, tempShaderFilePath]);
+						break;
+					case 'spirv':
+						break;
+					case 'glsl':
+						break;
+					case 'msl':
+						break;
+					default:
+						break;
+				}
 			}
+		});
+	}
 
+	// 编译着色器
+	comileShader_fxc(tmpDir, message, webviewView) {
+	}
+
+	// 编译着色器
+	comileShader_glslang(tmpDir, message, webviewView) {
+	}
+
+	// 编译着色器
+	compileShader(message, webviewView) {
+		try {
 			// 获取临时路径用于存储编译结果
 			const tmpDir = path.join(require('os').tmpdir(), 'shadercross-vscode-plugin');
 			if (!fs.existsSync(tmpDir)) {
 				try {
 					fs.mkdirSync(tmpDir, { recursive: true });
 				} catch (mkdirError) {
-					vscode.window.showErrorMessage(`Failed to create output directory: ${mkdirError.message}`);
-					console.error(`Failed to create output directory: ${mkdirError.message}`); // 输出到终端
+					vscode.window.showErrorMessage(`无法创建临时输出目录: ${mkdirError.message}`);
+					console.error(`Failed to create temporary output directory: ${mkdirError.message}`); // 输出到终端
 					return;
 				}
 			}
 
-			// 获取当前活动编辑器中的着色器文件路径
-			const dstFilePath = activeEditor.document.uri.fsPath;
-
-			// 如果当前活动编辑器中的内容存在修改且没有存盘，则把当前内容存盘到临时目录的同名着色器文件
-			let shaderFilePath = dstFilePath;
-			let tempShaderFilePath;
-
-			if (activeEditor.document.isDirty) {
-				const shaderFileName = path.basename(dstFilePath);
-				tempShaderFilePath = path.join(tmpDir, shaderFileName);
-				try {
-					fs.writeFileSync(tempShaderFilePath, activeEditor.document.getText(), 'utf8');
-					shaderFilePath = tempShaderFilePath;
-				} catch (writeError) {
-					vscode.window.showErrorMessage(`无法将未保存的着色器写入临时文件: ${writeError.message}`);
-					console.error(`Failed to write unsaved shader to temp file: ${writeError.message}`);
-					return;
-				}
-			}
-			
-			// 添加Include路径
-			if (message.includePaths && message.includePaths.length > 0) {
-				message.includePaths.forEach(includePath => {
-					// 检查是否为相对路径，如果是则转换为相对于dstFilePath的绝对路径
-					let resolvedPath = includePath;
-					const shaderDirPath = path.dirname(dstFilePath);
-					
-					// 如果不是绝对路径，则将其解析为相对于dstFilePath的绝对路径
-					if (!path.isAbsolute(includePath)) {
-						resolvedPath = path.resolve(shaderDirPath, includePath);
-					}
-					
-					args.push(`-I ${resolvedPath}`);
-				});
-			}
-
-			// 添加额外选项
-			if (message.additionalOptionEnabled && message.additionalOption) {
-				args.push(message.additionalOption);
-			}
-
-			// 根据outputType定义输出文件名
-			let outputFileName;
-			switch (message.outputType.toLowerCase()) {
-				case 'dxil':
-					outputFileName = 'output.dxil';
-					break;
-				case 'spirv':
-					outputFileName = 'output.spv';
-					break;
-				case 'hlsl':
-				case 'hlsl-preprocess':
-					outputFileName = 'output.hlsl';
-					break;
-				case 'glsl':
-					outputFileName = 'output.glsl';
-					break;
-				case 'msl':
-					outputFileName = 'output.msl';
-					break;
-				default:
-					vscode.window.showErrorMessage(`不支持的输出类型: ${message.outputType}`);
-					return;
-			}
-
-			// 临时输出路径
-			const outputCompiledPath = path.join(tmpDir, outputFileName);
-			args.push(`-Fo ${outputCompiledPath}`);
-
-			args.push(shaderFilePath); // 添加输入文件路径
-
-			const argCmd = args.join(' ');
-
-			// 输出编译命令信息
-			vscode.window.showInformationMessage(`Running: ${dxcPath} ${argCmd}`);
-
-			// 执行dxc.exe
-			const { exec } = require('child_process');
-			exec(`${dxcPath} ${argCmd}`, (error, stdout, stderr) => {
-				let result = '';
-				if (error) {
-					result = `Compilation failed: ${error.message}\n\n${stderr}`;
-					vscode.window.showErrorMessage(`Shader compilation failed`);
-					console.error(result); // 输出到终端
-				} else {
-					result = `Compilation successful!\n\n${stdout}`;
-					vscode.window.showInformationMessage('Shader compiled successfully');
-				}
-
-				// 发送编译结果到webview
-				webviewView.webview.postMessage({
-					command: 'compileResult',
-					result: result
-				});
-					
-				// 删除临时编译输出文件
-				try {
-					if (fs.existsSync(outputCompiledPath)) {
-						fs.unlinkSync(outputCompiledPath);
-					}
-
-					if (tempShaderFilePath && fs.existsSync(tempShaderFilePath)) {
-						fs.unlinkSync(tempShaderFilePath);
-					}
-				} catch (cleanupError) {
-					console.warn(`Failed to delete temporary compiled file: ${cleanupError.message}`);
-				}
-			});
-	}
-
-	comileShader_fxc(message, webviewView) {
-	}
-
-	comileShader_glslang(message, webviewView) {
-	}
-
-	// 编译着色器
-	compileShader(message, webviewView) {
-		try {
 			// 根据编译器类型选择编译函数
 			switch (message.compiler) {
 				case 'dxc':
-					this.comileShader_dxc(message, webviewView);;
+					this.comileShader_dxc(tmpDir, message, webviewView);;
 					break;
 				case 'fxc':
-					this.comileShader_fxc(message, webviewView);;
+					this.comileShader_fxc(tmpDir, message, webviewView);;
 					break;
 				case 'glslang':
-					this.comileShader_glslang(message, webviewView);;
+					this.comileShader_glslang(tmpDir, message, webviewView);;
 					break;
 				default:
-					vscode.window.showErrorMessage(`Unsupported compiler: ${message.compiler}`);
+					vscode.window.showErrorMessage(`使用非法的编译器: ${message.compiler}`);
 					return;
 			}
-
-			// 调用编译函数
-			vscode.window.showInformationMessage(`Compiling shader with model ${message.shaderMode} to ${message.outputType} using ${message.compiler}`);
-			
 		} catch (error) {
-			vscode.window.showErrorMessage(`Compilation failed: ${error.message}`);
+			vscode.window.showErrorMessage(`编译失败: ${error.message}`);
 		}
 	}
 

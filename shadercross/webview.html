@@ -333,13 +333,6 @@
 	</div>
 	<div style="height: 1px; background-color: var(--border-color); margin: 16px 0;"></div>
 	
-	<!-- 编译结果区域 -->
-	<div class="compile-result-container" style="display: none; margin-top: 16px;">
-		<div class="compile-result-header" style="display: flex; align-items: center; margin-bottom: 8px;">
-			<div class="header-title" style="min-width: 200px;">Compile Result</div>
-		</div>
-		<pre class="compile-result-content" style="background-color: var(--secondary-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; white-space: pre-wrap; max-height: 300px; overflow-y: auto;"></pre>
-	</div>
 	<div class="shadercode-header" style="margin-bottom: 16px;">
 		<div class="header-title" style="min-width: 200px;">Shader Code Options</div>
 	</div>
@@ -348,6 +341,7 @@
 			<div class="shader-language" style="min-width: 128px; min-height: 20px;">Shader Language</div>
 			<select class="shader-language-select" style="flex-grow: 1; min-width: 150px;">
 				<option value="hlsl">HLSL</option>
+				<option value="hlsl2021" selected>HLSL2021</option>
 				<option value="glsl">GLSL</option>
 			</select>
 		</div>
@@ -509,6 +503,7 @@
 			// 发送编译命令和参数
 			vscode.postMessage({
 				command: 'compileShader',
+				shaderLanguage: shaderLanguageSelect.value,
 				compiler: compilerSelect.value,
 				shaderType: shaderTypeSelect.value,
 				shaderMode: shaderModeSelect.value,
@@ -574,17 +569,7 @@
 				includePathItem.appendChild(removeButton);
 						document.querySelector('.include-path-list').appendChild(includePathItem);
 					} else if (message.command === 'compileResult' && message.result) {
-						// 显示编译结果
-						const resultContainer = document.querySelector('.compile-result-container');
-						const resultContent = document.querySelector('.compile-result-content');
-						
-						if (resultContainer && resultContent) {
-							resultContent.textContent = message.result;
-							resultContainer.style.display = 'block';
-							
-							// 滚动到结果区域
-							resultContainer.scrollIntoView({ behavior: 'smooth' });
-						}
+						// TODO
 					}
 				});
 			});
