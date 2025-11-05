@@ -4,7 +4,7 @@
   "description": "A VSCode extension for shader development",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.100.3"
+    "vscode": "^1.96.0"
   },
   "categories": [
     "Other"
@@ -46,7 +46,7 @@
     "package": "echo y | vsce package"
   },
   "devDependencies": {
-    "@types/vscode": "^1.100.3",
+    "@types/vscode": "^1.96.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
     "eslint": "^9.32.0",
