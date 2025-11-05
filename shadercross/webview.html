@@ -501,6 +501,145 @@
 		// 获取VS Code API
 		const vscode = acquireVsCodeApi();
 
+		// 初始化编译器选择事件处理
+		function initCompilerSelectHandler() {
+			const compilerSelect = document.querySelector('.compiler-select');
+			// 为编译器选择框添加变化事件
+			compilerSelect.addEventListener('change', updateOptionsByCompiler);
+			// 初始化时也执行一次，确保选项正确设置
+			updateOptionsByCompiler();
+		}
+
+		// 根据选择的编译器更新其他选项的可用性
+		function updateOptionsByCompiler() {
+			const compilerSelect = document.querySelector('.compiler-select');
+			const shaderTypeSelect = document.querySelector('.shader-type-select');
+			const shaderModeSelect = document.querySelector('.shader-mode-select');
+			const outputTypeSelect = document.querySelector('.output-type-select');
+			const shaderLanguageSelect = document.querySelector('.shader-language-select');
+			const selectedCompiler = compilerSelect.value;
+
+			// 重置所有选项为可用状态
+			Array.from(shaderModeSelect.options).forEach(option => {
+				option.disabled = false;
+			});
+			Array.from(outputTypeSelect.options).forEach(option => {
+				option.disabled = false;
+			});
+			Array.from(shaderLanguageSelect.options).forEach(option => {
+				option.disabled = false;
+			});
+			Array.from(shaderTypeSelect.options).forEach(option => {
+				option.disabled = false;
+			});
+
+			// 根据选择的编译器限制选项
+			switch (selectedCompiler) {
+				case 'dxc':
+					// DXC编译器限制：
+					// 1. 不支持ShaderMode为450和460的情况
+					Array.from(shaderModeSelect.options).forEach(option => {
+						if (option.value === '450' || option.value === '460') {
+							option.disabled = true;
+						}
+					});
+					
+					// 2. 不支持OutputType为DXBC和HLSL情况
+					Array.from(outputTypeSelect.options).forEach(option => {
+						if (option.value === 'DXBC' || option.value === 'HLSL') {
+							option.disabled = true;
+						}
+					});
+					
+					// 3. 仅支持ShaderLanguage为HLSL和HLSL2021情况
+					Array.from(shaderLanguageSelect.options).forEach(option => {
+						if (option.value !== 'hlsl' && option.value !== 'hlsl2021') {
+							option.disabled = true;
+						}
+					});
+					break;
+
+				case 'fxc':
+					// FXC编译器限制：
+					// 1. 仅支持ShaderMode为sm5.0和sm5.1的情况
+					Array.from(shaderModeSelect.options).forEach(option => {
+						if (option.value !== '5_0' && option.value !== '5_1') {
+							option.disabled = true;
+						}
+					});
+					
+					// 2. 仅支持OutputType为DXBC和HLSL-Preprocess情况
+					Array.from(outputTypeSelect.options).forEach(option => {
+						if (option.value !== 'DXBC' && option.value !== 'HLSL-Preprocess') {
+							option.disabled = true;
+						}
+					});
+					
+					// 3. 仅支持ShaderLanguage为HLSL情况
+					Array.from(shaderLanguageSelect.options).forEach(option => {
+						if (option.value !== 'hlsl') {
+							option.disabled = true;
+						}
+					});
+                    
+                    // 4. 仅支持ShaderType为Vertex, Pixel, Geometry, Hull, Domain, Compute情况
+                    Array.from(shaderTypeSelect.options).forEach(option => {
+                        const allowedTypes = ['vs', 'ps', 'gs', 'hs', 'ds', 'cs'];
+                        if (!allowedTypes.includes(option.value)) {
+                            option.disabled = true;
+                        }
+                    });
+					break;
+
+				case 'glslang':
+					// GLSLang编译器限制：
+					// 1. 仅支持ShaderMode为450和460的情况
+					Array.from(shaderModeSelect.options).forEach(option => {
+						if (option.value !== '450' && option.value !== '460') {
+							option.disabled = true;
+						}
+					});
+					
+					// 2. 仅支持OutputType为SPIR-V，HLSL, GLSL和MSL情况
+					Array.from(outputTypeSelect.options).forEach(option => {
+						if (option.value !== 'SPIR-V' && option.value !== 'HLSL' && option.value !== 'GLSL' && option.value !== 'MSL') {
+							option.disabled = true;
+						}
+					});
+					
+					// 3. 仅支持ShaderLanguage为HLSL和GLSL情况
+					Array.from(shaderLanguageSelect.options).forEach(option => {
+						if (option.value !== 'hlsl' && option.value !== 'glsl') {
+							option.disabled = true;
+						}
+					});
+					break;
+			}
+
+			// 确保当前选择的值是有效的，如果无效则选择第一个有效的选项
+			ensureValidSelection(shaderModeSelect);
+			ensureValidSelection(outputTypeSelect);
+			ensureValidSelection(shaderLanguageSelect);
+			ensureValidSelection(shaderTypeSelect);
+
+			// 保存配置
+			saveCurrentConfiguration();
+		}
+
+		// 确保选择框选中的是有效的选项，如果不是则选择第一个可用选项
+		function ensureValidSelection(selectElement) {
+			const currentValue = selectElement.value;
+			const selectedOption = selectElement.querySelector(`option[value="${currentValue}"]`);
+			
+			// 如果当前选中的选项被禁用，选择第一个可用的选项
+			if (!selectedOption || selectedOption.disabled) {
+				const firstValidOption = Array.from(selectElement.options).find(option => !option.disabled);
+				if (firstValidOption) {
+					selectElement.value = firstValidOption.value;
+				}
+			}
+		}
+
 		// 编译按钮点击事件
 		document.getElementById('compile-shader-button').addEventListener('click', function() {
 			// 获取所有编译参数
@@ -613,6 +752,9 @@
 			if (config.additionalOptionEnabled !== undefined) document.querySelector('.additional-option-checkbox').checked = config.additionalOptionEnabled;
 			if (config.additionalOption) document.querySelector('.additional-option-input').value = config.additionalOption;
 			if (config.shaderLanguage) document.querySelector('.shader-language-select').value = config.shaderLanguage;
+			
+			// 恢复配置后应用选项限制逻辑
+			updateOptionsByCompiler();
 
 			// 恢复宏定义
 			if (config.macros && Array.isArray(config.macros)) {
@@ -772,6 +914,9 @@
 		document.querySelectorAll('select, input[type="text"], input[type="checkbox"]').forEach(element => {
 			element.addEventListener('change', saveCurrentConfiguration);
 		});
+
+		// 初始化编译器选择事件处理
+		initCompilerSelectHandler();
 
 		// 修改宏定义添加按钮，添加后保存配置
 		document.querySelector('.add-macro-button').addEventListener('click', function(originalEvent) {
