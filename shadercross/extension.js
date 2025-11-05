@@ -242,31 +242,7 @@ class ShaderCrossViewProvider {
 				vscode.workspace.applyEdit(edit).then(success => {
 					if (success) {
 						vscode.window.showTextDocument(doc).then(editor => {
-							let findSuccess = false;
-							// 确保编辑操作成功完成后再查找文本
-							if (showText) {
-								const range = this.findAndLocateCodeInDocument(doc, showText);
-								if (range) {
-									editor.selection = new vscode.Selection(range.start, range.end);
-									editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
-									findSuccess = true;
-								}
-							}
-
-							if (!findSuccess) {
-								// 如果未找到指定文本，滚动到文档顶部
-								editor.selection = new vscode.Selection(
-									doc.positionAt(0),
-									doc.positionAt(0)
-								);
-								editor.revealRange(
-									new vscode.Range(
-										doc.positionAt(0),
-										doc.positionAt(0)
-									),
-									vscode.TextEditorRevealType.InCenter
-								);
-							}
+							this.locateAndShowCode(editor, doc, showText);
 						});
 					}
 				});
@@ -276,30 +252,8 @@ class ShaderCrossViewProvider {
 			existingEditor.edit(edit => {
 				edit.replace(new vscode.Range(0, 0, existingEditor.document.lineCount, 0), resultDissamblyContent);
 			}).then(success => {
-				let findSuccess = false;
-				// 确保编辑操作成功完成后再查找文本
-				if (success && showText) {
-					const range = this.findAndLocateCodeInDocument(existingEditor.document, showText);
-					if (range) {
-						existingEditor.selection = new vscode.Selection(range.start, range.end);
-						existingEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
-						findSuccess = true;
-					}
-				}
-
-				if (!findSuccess) {
-					// 如果未找到指定文本，滚动到文档顶部
-					existingEditor.selection = new vscode.Selection(
-						existingEditor.document.positionAt(0),
-						existingEditor.document.positionAt(0)
-					);
-					existingEditor.revealRange(
-						new vscode.Range(
-							existingEditor.document.positionAt(0),
-							existingEditor.document.positionAt(0)
-						),
-						vscode.TextEditorRevealType.InCenter
-					);
+				if (success) {
+					this.locateAndShowCode(existingEditor, existingEditor.document, showText);
 				}
 			});
 		}
@@ -318,6 +272,35 @@ class ShaderCrossViewProvider {
 		const startPos = document.positionAt(index);
 		const endPos = document.positionAt(index + showText.length);
 		return new vscode.Range(startPos, endPos);
+	}
+
+	locateAndShowCode(editor, doc, showText) {
+		let findSuccess = false;
+
+		// 确保编辑操作成功完成后再查找文本
+		if (showText) {
+			const range = this.findAndLocateCodeInDocument(doc, showText);
+			if (range) {
+				editor.selection = new vscode.Selection(range.start, range.end);
+				editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+				findSuccess = true;
+			}
+		}
+
+		if (!findSuccess) {
+			// 如果未找到指定文本，滚动到文档顶部
+			editor.selection = new vscode.Selection(
+				doc.positionAt(0),
+				doc.positionAt(0)
+			);
+			editor.revealRange(
+				new vscode.Range(
+					doc.positionAt(0),
+					doc.positionAt(0)
+				),
+				vscode.TextEditorRevealType.InCenter
+			);
+		}
 	}
 
 	// 编译着色器
