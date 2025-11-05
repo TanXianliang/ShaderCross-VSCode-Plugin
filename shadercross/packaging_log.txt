@@ -1,0 +1,5 @@
+
+> shadercross@0.0.1 package
+> echo y | vsce package
+
+ DONE  Packaged: F:\Workspace\ShaderCross-VSCode-Plugin\shadercross\shadercross-0.0.1.vsix (64 files, 53.65MB)
