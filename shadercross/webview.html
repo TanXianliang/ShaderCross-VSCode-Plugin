@@ -708,6 +708,7 @@
 				includePathValueEl.style.borderRadius = '4px';
 				includePathValueEl.style.backgroundColor = 'var(--primary-bg)';
 				includePathValueEl.textContent = message.path;
+				includePathValueEl.contentEditable = true;
 				
 				// 创建删除按钮
 				const removeButton = document.createElement('button');
@@ -835,13 +836,14 @@
 						includePathItem.style.padding = '4px 0';
 
 						const includePathValueEl = document.createElement('div');
-						includePathValueEl.className = 'include-path-value';
-						includePathValueEl.style.flexGrow = '1';
-						includePathValueEl.style.padding = '4px 8px';
-						includePathValueEl.style.border = '1px solid var(--border-color)';
-						includePathValueEl.style.borderRadius = '4px';
-						includePathValueEl.style.backgroundColor = 'var(--primary-bg)';
-						includePathValueEl.textContent = pathValue;
+								includePathValueEl.className = 'include-path-value';
+								includePathValueEl.style.flexGrow = '1';
+								includePathValueEl.style.padding = '4px 8px';
+								includePathValueEl.style.border = '1px solid var(--border-color)';
+								includePathValueEl.style.borderRadius = '4px';
+								includePathValueEl.style.backgroundColor = 'var(--primary-bg)';
+								includePathValueEl.textContent = pathValue;
+								includePathValueEl.contentEditable = true;
 
 						const removeButton = document.createElement('button');
 						removeButton.className = 'remove-include-path-button';
