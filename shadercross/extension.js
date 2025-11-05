@@ -4,6 +4,9 @@ const vscode = require('vscode');
 const path = require('path');
 const fs = require('fs');
 
+// 创建全局OutputChannel实例，用于输出日志
+const outputChannel = vscode.window.createOutputChannel('ShaderCross');
+
 // 视图提供者类
 class ShaderCrossViewProvider {
 	constructor(context) {
@@ -73,6 +76,24 @@ class ShaderCrossViewProvider {
 		}
 	}
 
+	log(level, message) {
+		// 格式化日志消息，包含时间戳和级别
+		const timestamp = new Date().toLocaleString();
+		const formattedMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
+		
+		// 输出到OutputChannel
+		outputChannel.appendLine(formattedMessage);
+		
+		// 开发环境仍然输出到控制台
+		if (level === 'error') {
+			console.error(message);
+		} else if (level === 'warn') {
+			console.warn(message);
+		} else {
+			console.log(message);
+		}
+	}
+
 	// 保存配置到VS Code存储
 	saveConfiguration(config) {
 		try {
@@ -93,35 +114,35 @@ class ShaderCrossViewProvider {
 			// 使用VS Code的全局状态存储
 			this.context.globalState.update(this.configurationKey, configurationToSave);
 		} catch (error) {
-			console.error('Failed to save configuration:', error.message);
+			this.log('error', `Failed to save configuration: ${error.message}`);
 		}
 	}
 
 	// 从VS Code存储获取保存的配置
 	getSavedConfiguration() {
-		try {
-			const savedConfig = this.context.globalState.get(this.configurationKey);
-			if (savedConfig) {
-				// 确保返回的配置对象具有所有必要的字段，避免UI错误
-				return {
-					compiler: savedConfig.compiler || '',
-					shaderType: savedConfig.shaderType || '',
-					shaderMode: savedConfig.shaderMode || '',
-					outputType: savedConfig.outputType || '',
-					entryPoint: savedConfig.entryPoint || '',
-					additionalOptionEnabled: !!savedConfig.additionalOptionEnabled,
-					additionalOption: savedConfig.additionalOption || '',
-					shaderLanguage: savedConfig.shaderLanguage || '',
-					macros: Array.isArray(savedConfig.macros) ? savedConfig.macros : [],
-					includePaths: Array.isArray(savedConfig.includePaths) ? savedConfig.includePaths : []
-				};
+			try {
+				const savedConfig = this.context.globalState.get(this.configurationKey);
+				if (savedConfig) {
+					// 确保返回的配置对象具有所有必要的字段，避免UI错误
+					return {
+						compiler: savedConfig.compiler || '',
+						shaderType: savedConfig.shaderType || '',
+						shaderMode: savedConfig.shaderMode || '',
+						outputType: savedConfig.outputType || '',
+						entryPoint: savedConfig.entryPoint || '',
+						additionalOptionEnabled: !!savedConfig.additionalOptionEnabled,
+						additionalOption: savedConfig.additionalOption || '',
+						shaderLanguage: savedConfig.shaderLanguage || '',
+						macros: Array.isArray(savedConfig.macros) ? savedConfig.macros : [],
+						includePaths: Array.isArray(savedConfig.includePaths) ? savedConfig.includePaths : []
+					};
+				}
+				return null;
+			} catch (error) {
+				this.log('error', `Failed to get saved configuration: ${error.message}`);
+				return null;
 			}
-			return null;
-		} catch (error) {
-			console.error('Failed to get saved configuration:', error.message);
-			return null;
 		}
-	}
 
 	deleteTempFiles(filePathArray) {
 		try {
@@ -132,7 +153,7 @@ class ShaderCrossViewProvider {
 				}
 			});
 		} catch (cleanupError) {
-			console.warn(`删除临时文件失败: ${cleanupError.message}`);
+			this.log('warn', `删除临时文件失败: ${cleanupError.message}`);
 		}
 	}
 
@@ -319,6 +340,7 @@ class ShaderCrossViewProvider {
 		const activeEditor = vscode.window.activeTextEditor;
 		if (!activeEditor) {
 			vscode.window.showErrorMessage('未找到活动的编辑器，请先打开一个着色器文件。');
+			this.log('error', 'No active editor found. Please open a shader file.');
 			return;
 		}
 
@@ -350,7 +372,7 @@ class ShaderCrossViewProvider {
 				shaderFilePath = tempShaderFilePath;
 			} catch (writeError) {
 				vscode.window.showErrorMessage(`无法将未保存的着色器写入临时文件: ${writeError.message}`);
-				console.error(`Failed to write unsaved shader to temp file: ${writeError.message}`);
+				this.log('error', `Failed to write unsaved shader to temp file: ${writeError.message}`);
 				return;
 			}
 		}
@@ -422,6 +444,7 @@ class ShaderCrossViewProvider {
 
 		// 输出编译命令信息
 		vscode.window.showInformationMessage(`执行编译: dxc ${argCmd}`);
+		this.log('info', `Executing command: dxc ${argCmd}`);
 
 		// 执行dxc.exe
 		const { execSync } = require('child_process');
@@ -434,6 +457,7 @@ class ShaderCrossViewProvider {
 			const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
 
 			vscode.window.showInformationMessage(`着色器编译成功（${elapsed} 秒）`);
+			this.log('info', `Shader compilation successful (${elapsed} seconds)`);
 
 			switch (message.outputType.toLowerCase()) {
 					case 'dxil':
@@ -444,10 +468,10 @@ class ShaderCrossViewProvider {
 							try {
 								this.showResultDissambly(tmpDir, disasmStdout, '; Resource Bindings:');
 							} catch (writeError) {
-								console.error(`写入反编译结果失败: ${writeError.message}`);
+								this.log('error', `写入反编译结果失败: ${writeError.message}`);
 							}
 						} catch (disasmError) {
-							console.error(`反编译失败: ${disasmError.message}`);
+							this.log('error', `反编译失败: ${disasmError.message}`);
 						}
 						break;
 					case 'hlsl-preprocess':
@@ -456,7 +480,7 @@ class ShaderCrossViewProvider {
 							const preprocessContent = fs.readFileSync(outputCompiledPath, 'utf8');
 							this.showResultDissambly(tmpDir, preprocessContent, null);
 						} catch (readWriteError) {
-							console.error(`处理HLSL预处理结果失败: ${readWriteError.message}`);
+														this.log('error', `处理HLSL预处理结果失败: ${readWriteError.message}`);
 						}
 						break;
 					case 'spir-v':
@@ -475,10 +499,10 @@ class ShaderCrossViewProvider {
 								disResult = disResult + '\n' + '// SPIR-V 反射信息:\n' + reflectionInfo;
 								this.showResultDissambly(tmpDir, disResult, '// SPIR-V 反射信息:');
 							}).catch(err => {
-								console.error(`提取SPIR-V反射信息失败: ${err.message}`);
+								this.log('error', `提取SPIR-V反射信息失败: ${err.message}`);
 							});
 						} catch (disasmError) {
-							console.error(`spirv-dis 反编译失败: ${disasmError.message}`);
+							this.log('error', `spirv-dis 反编译失败: ${disasmError.message}`);
 						}
 						break;
 					case 'glsl':
@@ -489,9 +513,8 @@ class ShaderCrossViewProvider {
 
 							const disStdout = execSync(spirvDisCmd, { encoding: 'utf8' });
 							this.showResultDissambly(tmpDir, disStdout, null);
-						}
-						catch (disasmError) {
-							console.error(`spirv-cross 反编译失败: ${disasmError.message}`);
+						} catch (disasmError) {
+							this.log('error', `spirv-cross 反编译失败: ${disasmError.message}`);
 						}
 						break;
 					case 'msl':
@@ -502,9 +525,8 @@ class ShaderCrossViewProvider {
 
 							const disStdout = execSync(spirvDisCmd, { encoding: 'utf8' });
 							this.showResultDissambly(tmpDir, disStdout, 'using namespace metal;');
-						}
-						catch (disasmError) {
-							console.error(`spirv-cross 生成MSL失败: ${disasmError.message}`);
+						} catch (disasmError) {
+							this.log('error', `spirv-cross 生成MSL失败: ${disasmError.message}`);
 						}
 						break;
 					default:
@@ -513,7 +535,7 @@ class ShaderCrossViewProvider {
 		} catch (error) {
 			result = `编译失败: ${error.message}\n\n${error.stderr || ''}\n\n`;
 			vscode.window.showErrorMessage(`着色器编译失败`);
-			console.error(result);
+			this.log('error', result);
 		}
 
 		// 删除临时编译输出文件
@@ -532,6 +554,7 @@ class ShaderCrossViewProvider {
 		const activeEditor = vscode.window.activeTextEditor;
 		if (!activeEditor) {
 			vscode.window.showErrorMessage('未找到活动的编辑器，请先打开一个着色器文件。');
+			this.log('error', 'No active editor found. Please open a shader file.');
 			return;
 		}
 
@@ -582,7 +605,7 @@ class ShaderCrossViewProvider {
 				shaderFilePath = tempShaderFilePath;
 			} catch (writeError) {
 				vscode.window.showErrorMessage(`无法将未保存的着色器写入临时文件: ${writeError.message}`);
-				console.error(`Failed to write unsaved shader to temp file: ${writeError.message}`);
+				this.log('error', `Failed to write unsaved shader to temp file: ${writeError.message}`);
 				return;
 			}
 		}
@@ -619,6 +642,7 @@ class ShaderCrossViewProvider {
 
 		// 输出编译命令信息
 		vscode.window.showInformationMessage(`执行编译: fxc ${argCmd}`);
+		this.log('info', `Executing command: fxc ${argCmd}`);
 
 		// 执行fxc.exe
 		const { execSync } = require('child_process');
@@ -631,6 +655,7 @@ class ShaderCrossViewProvider {
 			const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
 
 			vscode.window.showInformationMessage(`着色器编译成功（${elapsed} 秒）`);
+			this.log('info', `Shader compilation successful (${elapsed} seconds)`);
 
 			switch (message.outputType.toLowerCase()) {
 				case 'hlsl-preprocess':
@@ -640,7 +665,7 @@ class ShaderCrossViewProvider {
 						const preprocessContent = fs.readFileSync(outputCompiledPath, 'utf8');
 						this.showResultDissambly(tmpDir, preprocessContent, null);
 					} catch (readWriteError) {
-						console.error(`处理HLSL预处理结果失败: ${readWriteError.message}`);
+						this.log('error', `处理HLSL预处理结果失败: ${readWriteError.message}`);
 					}
 					break;
 				case 'dxbc':
@@ -650,7 +675,7 @@ class ShaderCrossViewProvider {
 						const disasmStdout = execSync(fxcDisasmCmd, { encoding: 'utf8' });
 						this.showResultDissambly(tmpDir, disasmStdout, '// Resource Bindings:');
 					} catch (disasmError) {
-						console.error(`反编译失败: ${disasmError.message}`);
+						this.log('error', `反编译失败: ${disasmError.message}`);
 					}
 					break;
 				default:
@@ -659,7 +684,7 @@ class ShaderCrossViewProvider {
 		} catch (error) {
 			result = `编译失败: ${error.message}\n\n${error.stderr || ''}\n\n`;
 			vscode.window.showErrorMessage(`着色器编译失败`);
-			console.error(result);
+			this.log('error', result);
 		}
 
 		// 删除临时编译输出文件
@@ -678,6 +703,7 @@ class ShaderCrossViewProvider {
 		const activeEditor = vscode.window.activeTextEditor;
 		if (!activeEditor) {
 			vscode.window.showErrorMessage('未找到活动的编辑器，请先打开一个着色器文件。');
+			this.log('error', 'No active editor found. Please open a shader file.');
 			return;
 		}
 
@@ -696,7 +722,7 @@ class ShaderCrossViewProvider {
 				shaderFilePath = tempShaderFilePath;
 			} catch (writeError) {
 				vscode.window.showErrorMessage(`无法将未保存的着色器写入临时文件: ${writeError.message}`);
-				console.error(`Failed to write unsaved shader to temp file: ${writeError.message}`);
+				this.log('error', `Failed to write unsaved shader to temp file: ${writeError.message}`);
 				return;
 			}
 		}
@@ -787,6 +813,7 @@ class ShaderCrossViewProvider {
 
 		// 输出编译命令信息
 		vscode.window.showInformationMessage(`执行编译: glslangValidator ${argCmd}`);
+		this.log('info', `Executing command: glslangValidator ${argCmd}`);
 
 		// 执行glslangValidator.exe
 		const { execSync } = require('child_process');
@@ -799,6 +826,7 @@ class ShaderCrossViewProvider {
 			const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
 
 			vscode.window.showInformationMessage(`着色器编译成功（${elapsed} 秒）`);
+			this.log('info', `Shader compilation successful (${elapsed} seconds)`);
 
 			switch (message.outputType.toLowerCase()) {
 				case 'spir-v':
@@ -819,7 +847,7 @@ class ShaderCrossViewProvider {
 							});
 					} catch (spirvDisError) {
 						vscode.window.showErrorMessage(`SPIR-V 反编译失败: ${spirvDisError.message}`);
-						console.error(`Failed to disassemble SPIR-V: ${spirvDisError.message}`); // 输出到终端
+						this.log('error', `Failed to disassemble SPIR-V: ${spirvDisError.message}`);
 						return;
 					}
 					break;
@@ -857,19 +885,17 @@ class ShaderCrossViewProvider {
 
 						const disStdout = execSync(spirvDisCmd, { encoding: 'utf8' });
 						this.showResultDissambly(tmpDir, disStdout, null);
-					}
-					catch (disasmError) {
-						console.error(`spirv-cross 生成HLSL失败: ${disasmError.message}`);
+					} catch (disasmError) {
+						this.log('error', `spirv-cross 生成HLSL失败: ${disasmError.message}`);
 					}
 					break;
 			}
 		} catch (error) {
-			vscode.window.showErrorMessage(`着色器编译失败: ${error.message}`);
-			console.error(`Failed to compile shader: ${error.message}`); // 输出到终端
+				vscode.window.showErrorMessage(`着色器编译失败: ${error.message}`);
+				this.log('error', `Failed to compile shader: ${error.message}`);
 			return;
 		}
 	}
-
 
 	// 编译着色器
 	compileShader(message, webviewView) {
@@ -881,7 +907,7 @@ class ShaderCrossViewProvider {
 					fs.mkdirSync(tmpDir, { recursive: true });
 				} catch (mkdirError) {
 					vscode.window.showErrorMessage(`无法创建临时输出目录: ${mkdirError.message}`);
-					console.error(`Failed to create temporary output directory: ${mkdirError.message}`); // 输出到终端
+					this.log('error', `Failed to create temporary output directory: ${mkdirError.message}`);
 					return;
 				}
 			}
@@ -890,6 +916,7 @@ class ShaderCrossViewProvider {
 			const activeEditor = vscode.window.activeTextEditor;
 			if (activeEditor && activeEditor.document.fileName.endsWith(this.getResultDissamblyFileName())) {
 				vscode.window.showWarningMessage(`请选择有效的 Shader 文件，当前窗口为 ${this.getResultDissamblyFileName()}`);
+				this.log('warning', `Please select a valid Shader file, current window is ${this.getResultDissamblyFileName()}`);
 				return;
 			}
 
