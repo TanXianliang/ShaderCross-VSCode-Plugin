@@ -77,20 +77,37 @@ class ShaderCrossViewProvider {
 	}
 
 	log(level, message) {
-		// 格式化日志消息，包含时间戳和级别
-		const timestamp = new Date().toLocaleString();
-		const formattedMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
+		// 格式化日志消息，使用VS Code OutputChannel标准的着色格式
+		const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 23);
+		
+		// 根据VS Code OutputChannel标准，使用特定格式的标签会自动着色
+		let formattedMessage = '';
+		
+		switch (level.toLowerCase()) {
+			case 'error':
+				formattedMessage = `${timestamp} [error] > ${message}`; // 红色
+				break;
+			case 'warn':
+			case 'warning':
+				formattedMessage = `${timestamp} [warning] > ${message}`; // 黄色
+				break;
+			case 'info':
+				formattedMessage = `${timestamp} [info] > ${message}`; // 绿色（注意使用小写）
+				break;
+			default:
+				formattedMessage = `${timestamp} [info] > ${message}`; // 默认使用info格式
+		}
 		
 		// 输出到OutputChannel
 		outputChannel.appendLine(formattedMessage);
 		
 		// 开发环境仍然输出到控制台
 		if (level === 'error') {
-			console.error(message);
-		} else if (level === 'warn') {
-			console.warn(message);
+			console.error(formattedMessage);
+		} else if (level === 'warn' || level === 'warning') {
+			console.warn(formattedMessage);
 		} else {
-			console.log(message);
+			console.log(formattedMessage);
 		}
 	}
 
