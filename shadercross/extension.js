@@ -244,6 +244,8 @@ class ShaderCrossViewProvider {
 						vscode.window.showTextDocument(doc).then(editor => {
 							this.locateAndShowCode(editor, doc, showText);
 						});
+						// 指定语言模式为HLSL
+						vscode.languages.setTextDocumentLanguage(doc, 'hlsl');
 					}
 				});
 			});
@@ -251,6 +253,8 @@ class ShaderCrossViewProvider {
 			// 如果已存在临时文档窗口，则更新其内容
 			existingEditor.edit(edit => {
 				edit.replace(new vscode.Range(0, 0, existingEditor.document.lineCount, 0), resultDissamblyContent);
+				// 指定语言模式为HLSL
+				vscode.languages.setTextDocumentLanguage(existingEditor.document, 'hlsl');
 			}).then(success => {
 				if (success) {
 					this.locateAndShowCode(existingEditor, existingEditor.document, showText);
