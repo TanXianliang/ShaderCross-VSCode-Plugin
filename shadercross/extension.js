@@ -153,7 +153,7 @@ class ShaderCrossViewProvider {
 				}
 			});
 		} catch (cleanupError) {
-			this.log('warn', `删除临时文件失败: ${cleanupError.message}`);
+			this.log('warn', `Delete Temp Files Failed: ${cleanupError.message}`);
 		}
 	}
 
@@ -448,13 +448,36 @@ class ShaderCrossViewProvider {
 
 		// 执行dxc.exe
 		const { execSync } = require('child_process');
-
-		let result = '';
+		const { spawnSync } = require('child_process');
 		try {
 			// 记录编译开始时间
 			const startTime = Date.now();
-			const stdout = execSync(`${dxcPath} ${argCmd}`, { encoding: 'utf8' });
-			const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+
+			const result = spawnSync(`${dxcPath}`, argCmd.split(' '), { 
+				encoding: 'utf8',
+				maxBuffer: 10 * 1024 * 1024
+			});
+			const elapsed = ((Date.now() - startTime) / 1000).toFixed(4);
+
+			// 检查是否有警告信息（警告通常输出到stderr）
+			const stderr = result.stderr || '';
+
+			// 检查是否包含警告信息
+			if (result.status !== 0) {
+				throw new Error(`Shader Compilation Failed:\n${stderr.trim()}`);
+			}
+
+			if (stderr.toLowerCase().includes('warning')) {
+				// 提取并输出警告信息
+				const warningLines = stderr.split('\n').filter(line => 
+					line.toLowerCase().includes('warning')
+				);
+				if (warningLines.length > 0) {
+					this.log('warning', `Shader Compilation Warning:\n${warningLines.join('\n')}`);
+				}
+			}
+
+			// 即使有警告，只要编译成功就继续处理
 
 			vscode.window.showInformationMessage(`着色器编译成功（${elapsed} 秒）`);
 			this.log('info', `Shader compilation successful (${elapsed} seconds)`);
@@ -468,10 +491,10 @@ class ShaderCrossViewProvider {
 							try {
 								this.showResultDissambly(tmpDir, disasmStdout, '; Resource Bindings:');
 							} catch (writeError) {
-								this.log('error', `写入反编译结果失败: ${writeError.message}`);
+								this.log('error', `Write DXIL Disassembly Result Failed: ${writeError.message}`);
 							}
 						} catch (disasmError) {
-							this.log('error', `反编译失败: ${disasmError.message}`);
+							this.log('error', `DXIL Disassembly Failed: ${disasmError.message}`);
 						}
 						break;
 					case 'hlsl-preprocess':
@@ -480,7 +503,7 @@ class ShaderCrossViewProvider {
 							const preprocessContent = fs.readFileSync(outputCompiledPath, 'utf8');
 							this.showResultDissambly(tmpDir, preprocessContent, null);
 						} catch (readWriteError) {
-														this.log('error', `处理HLSL预处理结果失败: ${readWriteError.message}`);
+							this.log('error', `Read HLSL Preprocess Result Failed: ${readWriteError.message}`);
 						}
 						break;
 					case 'spir-v':
@@ -499,10 +522,10 @@ class ShaderCrossViewProvider {
 								disResult = disResult + '\n' + '// SPIR-V 反射信息:\n' + reflectionInfo;
 								this.showResultDissambly(tmpDir, disResult, '// SPIR-V 反射信息:');
 							}).catch(err => {
-								this.log('error', `提取SPIR-V反射信息失败: ${err.message}`);
+								this.log('error', `Dump SPIR-V Reflection Info Failed: ${err.message}`);
 							});
 						} catch (disasmError) {
-							this.log('error', `spirv-dis 反编译失败: ${disasmError.message}`);
+							this.log('error', `spirv-dis Disassemble SPIR-V Failed: ${disasmError.message}`);
 						}
 						break;
 					case 'glsl':
@@ -514,7 +537,7 @@ class ShaderCrossViewProvider {
 							const disStdout = execSync(spirvDisCmd, { encoding: 'utf8' });
 							this.showResultDissambly(tmpDir, disStdout, null);
 						} catch (disasmError) {
-							this.log('error', `spirv-cross 反编译失败: ${disasmError.message}`);
+							this.log('error', `spirv-cross Disassemble GLSL Failed: ${disasmError.message}`);
 						}
 						break;
 					case 'msl':
@@ -526,16 +549,15 @@ class ShaderCrossViewProvider {
 							const disStdout = execSync(spirvDisCmd, { encoding: 'utf8' });
 							this.showResultDissambly(tmpDir, disStdout, 'using namespace metal;');
 						} catch (disasmError) {
-							this.log('error', `spirv-cross 生成MSL失败: ${disasmError.message}`);
+							this.log('error', `spirv-cross Generate MSL Failed: ${disasmError.message}`);
 						}
 						break;
 					default:
 						break;
 				}
 		} catch (error) {
-			result = `编译失败: ${error.message}\n\n${error.stderr || ''}\n\n`;
 			vscode.window.showErrorMessage(`着色器编译失败`);
-			this.log('error', result);
+			this.log('error', error.message);
 		}
 
 		// 删除临时编译输出文件
@@ -646,13 +668,36 @@ class ShaderCrossViewProvider {
 
 		// 执行fxc.exe
 		const { execSync } = require('child_process');
-
-		let result = '';
+		const { spawnSync } = require('child_process');
 		try {
 			// 记录编译开始时间
 			const startTime = Date.now();
-			const stdout = execSync(`"${fxcPath}" ${argCmd}`, { encoding: 'utf8' });
-			const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+			// 使用spawnSync代替execSync，以便分别捕获stdout和stderr
+			const result = spawnSync(`"${fxcPath}"`, argCmd.split(' '), { 
+				encoding: 'utf8',
+				maxBuffer: 10 * 1024 * 1024
+			});
+			const elapsed = ((Date.now() - startTime) / 1000).toFixed(4);
+
+			// 检查是否有警告信息（警告通常输出到stderr）
+			const stderr = result.stderr || '';
+
+			if (result.status !== 0) {
+				throw new Error(`Shader Compilation Failed:\n${stderr.trim()}`);
+			}
+
+			// 检查是否包含警告信息
+			if (stderr.toLowerCase().includes('warning')) {
+				// 提取并输出警告信息
+				const warningLines = stderr.split('\n').filter(line => 
+					line.toLowerCase().includes('warning')
+				);
+				if (warningLines.length > 0) {
+					this.log('warning', `Shader Compilation Warning:\n${warningLines.join('\n')}`);
+				}
+			}
+
+			// 即使有警告，只要编译成功就继续处理
 
 			vscode.window.showInformationMessage(`着色器编译成功（${elapsed} 秒）`);
 			this.log('info', `Shader compilation successful (${elapsed} seconds)`);
@@ -665,7 +710,7 @@ class ShaderCrossViewProvider {
 						const preprocessContent = fs.readFileSync(outputCompiledPath, 'utf8');
 						this.showResultDissambly(tmpDir, preprocessContent, null);
 					} catch (readWriteError) {
-						this.log('error', `处理HLSL预处理结果失败: ${readWriteError.message}`);
+						this.log('error', `Read HLSL Preprocess Result Failed: ${readWriteError.message}`);
 					}
 					break;
 				case 'dxbc':
@@ -675,16 +720,15 @@ class ShaderCrossViewProvider {
 						const disasmStdout = execSync(fxcDisasmCmd, { encoding: 'utf8' });
 						this.showResultDissambly(tmpDir, disasmStdout, '// Resource Bindings:');
 					} catch (disasmError) {
-						this.log('error', `反编译失败: ${disasmError.message}`);
+						this.log('error', `Dump DXBC Failed: ${disasmError.message}`);
 					}
 					break;
 				default:
 					break;
 			}
 		} catch (error) {
-			result = `编译失败: ${error.message}\n\n${error.stderr || ''}\n\n`;
 			vscode.window.showErrorMessage(`着色器编译失败`);
-			this.log('error', result);
+			this.log('error', error.message);
 		}
 
 		// 删除临时编译输出文件
@@ -817,13 +861,36 @@ class ShaderCrossViewProvider {
 
 		// 执行glslangValidator.exe
 		const { execSync } = require('child_process');
-
-		let result = '';
+		const { spawnSync } = require('child_process');
 		try {
 			// 记录编译开始时间
 			const startTime = Date.now();
-			const stdout = execSync(`${glslangPath} ${argCmd}`, { encoding: 'utf8' });
-			const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+			// 使用spawnSync代替execSync，以便分别捕获stdout和stderr
+			const result = spawnSync(`${glslangPath}`, argCmd.split(' '), { 
+				encoding: 'utf8',
+				maxBuffer: 10 * 1024 * 1024
+			});
+			const elapsed = ((Date.now() - startTime) / 1000).toFixed(4);
+
+			// 检查是否有警告信息（警告通常输出到stderr）
+			const stderr = result.stderr || '';
+
+			if (result.status !== 0) {
+				throw new Error(`Shader Compilation Failed:\n${stderr.trim()}`);
+			}
+
+			// 检查是否包含警告信息
+			if (stderr.toLowerCase().includes('warning')) {
+				// 提取并输出警告信息
+				const warningLines = stderr.split('\n').filter(line => 
+					line.toLowerCase().includes('warning')
+				);
+				if (warningLines.length > 0) {
+					this.log('warning', `Shader Compilation Warning:\n${warningLines.join('\n')}`);
+				}
+			}
+
+			// 即使有警告，只要编译成功就继续处理
 
 			vscode.window.showInformationMessage(`着色器编译成功（${elapsed} 秒）`);
 			this.log('info', `Shader compilation successful (${elapsed} seconds)`);
@@ -861,7 +928,7 @@ class ShaderCrossViewProvider {
 						this.showResultDissambly(tmpDir, disStdout, null);
 					}
 					catch (disasmError) {
-						console.error(`spirv-cross 反编译失败: ${disasmError.message}`);
+						this.log('error', `spirv-cross Disassemble GLSL Failed: ${disasmError.message}`);
 					}
 					break;
 				case 'msl':
@@ -874,7 +941,7 @@ class ShaderCrossViewProvider {
 						this.showResultDissambly(tmpDir, disStdout, 'using namespace metal;');
 					}
 					catch (disasmError) {
-						console.error(`spirv-cross 生成MSL失败: ${disasmError.message}`);
+						this.log('error', `spirv-cross Generate MSL Failed: ${disasmError.message}`);
 					}
 					break;
 				case 'hlsl':
@@ -886,7 +953,7 @@ class ShaderCrossViewProvider {
 						const disStdout = execSync(spirvDisCmd, { encoding: 'utf8' });
 						this.showResultDissambly(tmpDir, disStdout, null);
 					} catch (disasmError) {
-						this.log('error', `spirv-cross 生成HLSL失败: ${disasmError.message}`);
+						this.log('error', `spirv-cross Generate HLSL Failed: ${disasmError.message}`);
 					}
 					break;
 			}
