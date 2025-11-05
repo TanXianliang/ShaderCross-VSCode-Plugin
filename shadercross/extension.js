@@ -201,11 +201,11 @@ class ShaderCrossViewProvider {
 	}
 
 	getResultDissamblyFileName() {
-		return 'shadercross_resultDissambly.txt';
+		return 'shadercross_resultDissambly';
 	}
 
 	saveAndShowResultDissamblyToTempFile(tmpDir, preprocessContent, showText) {
-		const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
+		const resultDissamblyPath = path.join(tmpDir, `${this.getResultDissamblyFileName()}.txt`);
 
 		// 写入到结果文件
 		fs.writeFileSync(resultDissamblyPath, preprocessContent, 'utf8');
@@ -239,19 +239,67 @@ class ShaderCrossViewProvider {
 					doc.positionAt(doc.getText().length)
 				);
 				edit.replace(doc.uri, fullRange, resultDissamblyContent);
-				vscode.workspace.applyEdit(edit);
+				vscode.workspace.applyEdit(edit).then(success => {
+					if (success) {
+						vscode.window.showTextDocument(doc).then(editor => {
+							let findSuccess = false;
+							// 确保编辑操作成功完成后再查找文本
+							if (showText) {
+								const range = this.findAndLocateCodeInDocument(doc, showText);
+								if (range) {
+									editor.selection = new vscode.Selection(range.start, range.end);
+									editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+									findSuccess = true;
+								}
+							}
 
-				if (showText) {
-					this.findAndLocateCodeInDocument(doc, showText);
-				}
+							if (!findSuccess) {
+								// 如果未找到指定文本，滚动到文档顶部
+								editor.selection = new vscode.Selection(
+									doc.positionAt(0),
+									doc.positionAt(0)
+								);
+								editor.revealRange(
+									new vscode.Range(
+										doc.positionAt(0),
+										doc.positionAt(0)
+									),
+									vscode.TextEditorRevealType.InCenter
+								);
+							}
+						});
+					}
+				});
 			});
 		} else {
 			// 如果已存在临时文档窗口，则更新其内容
 			existingEditor.edit(edit => {
 				edit.replace(new vscode.Range(0, 0, existingEditor.document.lineCount, 0), resultDissamblyContent);
+			}).then(success => {
+				let findSuccess = false;
+				// 确保编辑操作成功完成后再查找文本
+				if (success && showText) {
+					const range = this.findAndLocateCodeInDocument(existingEditor.document, showText);
+					if (range) {
+						existingEditor.selection = new vscode.Selection(range.start, range.end);
+						existingEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+						findSuccess = true;
+					}
+				}
 
-				if (showText) {
-					this.findAndLocateCodeInDocument(existingEditor.document, showText);
+				if (!findSuccess) {
+					// 如果未找到指定文本，滚动到文档顶部
+					existingEditor.selection = new vscode.Selection(
+						existingEditor.document.positionAt(0),
+						existingEditor.document.positionAt(0)
+					);
+					existingEditor.revealRange(
+						new vscode.Range(
+							existingEditor.document.positionAt(0),
+							existingEditor.document.positionAt(0)
+						),
+						vscode.TextEditorRevealType.InCenter
+					);
 				}
 			});
 		}
@@ -263,7 +311,13 @@ class ShaderCrossViewProvider {
 	}
 
 	findAndLocateCodeInDocument(document, showText) {
-		return null;
+		const text = document.getText();
+		const index = text.indexOf(showText);
+		if (index === -1) return null;
+
+		const startPos = document.positionAt(index);
+		const endPos = document.positionAt(index + showText.length);
+		return new vscode.Range(startPos, endPos);
 	}
 
 	// 编译着色器
@@ -460,7 +514,7 @@ class ShaderCrossViewProvider {
 							const spirvDisCmd = `"${spirvCrossPath}" "${outputCompiledPath}" --msl`;
 
 							const disStdout = execSync(spirvDisCmd, { encoding: 'utf8' });
-							this.showResultDissambly(tmpDir, disStdout, null);
+							this.showResultDissambly(tmpDir, disStdout, 'using namespace metal;');
 						}
 						catch (disasmError) {
 							console.error(`spirv-cross 生成MSL失败: ${disasmError.message}`);
@@ -595,8 +649,6 @@ class ShaderCrossViewProvider {
 				case 'hlsl-preprocess':
 					// HLSL预处理模式：直接读取预处理结果并打开
 					try {
-						const resultDissamblyPath = path.join(tmpDir, this.getResultDissamblyFileName());
-
 						// 读取预处理后的文件内容
 						const preprocessContent = fs.readFileSync(outputCompiledPath, 'utf8');
 						this.showResultDissambly(tmpDir, preprocessContent, null);
@@ -804,7 +856,7 @@ class ShaderCrossViewProvider {
 						const spirvDisCmd = `"${spirvCrossPath}" "${outputCompiledPath}" --msl`;
 
 						const disStdout = execSync(spirvDisCmd, { encoding: 'utf8' });
-						this.showResultDissambly(tmpDir, disStdout, null);
+						this.showResultDissambly(tmpDir, disStdout, 'using namespace metal;');
 					}
 					catch (disasmError) {
 						console.error(`spirv-cross 生成MSL失败: ${disasmError.message}`);
