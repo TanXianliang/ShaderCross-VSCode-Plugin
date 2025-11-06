@@ -1142,14 +1142,6 @@ function activate(context) {
 	});
 
 	context.subscriptions.push(disposable);
-
-	// 关闭所有包含shadercross_resultDissambly名称的编辑器窗口，以免锁定了焦点
-	vscode.window.visibleTextEditors.forEach(editor => {
-		if (editor.document.uri.toString().toLowerCase().includes(getShaderCrossResultDissamblyName().toLowerCase())) {
-			// 使用hideTextDocument方法关闭编辑器窗口
-			vscode.commands.executeCommand('workbench.action.closeActiveEditor', editor.document.uri);
-		}
-	});
 }
 
 
