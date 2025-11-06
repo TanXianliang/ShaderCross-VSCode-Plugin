@@ -5,7 +5,8 @@ const path = require('path');
 const fs = require('fs');
 
 // 创建全局OutputChannel实例，用于输出日志
-const outputChannel = vscode.window.createOutputChannel('ShaderCross');
+// 创建OutputChannel时指定languageId为'log'，这样VS Code会使用日志格式的语法高亮
+const outputChannel = vscode.window.createOutputChannel('ShaderCross', 'log');
 
 // 视图提供者类
 class ShaderCrossViewProvider {
@@ -89,7 +90,7 @@ class ShaderCrossViewProvider {
 				break;
 			case 'warn':
 			case 'warning':
-				formattedMessage = `${timestamp} [warning] > ${message}`; // 黄色
+				formattedMessage = `${timestamp} [warn] > ${message}`; // 黄色
 				break;
 			case 'info':
 				formattedMessage = `${timestamp} [info] > ${message}`; // 绿色（注意使用小写）
