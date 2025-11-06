@@ -8,6 +8,10 @@ const fs = require('fs');
 // 创建OutputChannel时指定languageId为'log'，这样VS Code会使用日志格式的语法高亮
 const outputChannel = vscode.window.createOutputChannel('ShaderCross', 'log');
 
+function getShaderCrossResultDissamblyName() {
+	return 'shadercross_resultDissambly';
+}
+
 // 视图提供者类
 class ShaderCrossViewProvider {
 	constructor(context) {
@@ -250,7 +254,7 @@ class ShaderCrossViewProvider {
 	}
 
 	getResultDissamblyFileName() {
-		return 'shadercross_resultDissambly';
+		return getShaderCrossResultDissamblyName();
 	}
 
 	saveAndShowResultDissamblyToTempFile(tmpDir, preprocessContent, showText) {
@@ -1110,6 +1114,14 @@ function activate(context) {
 	});
 
 	context.subscriptions.push(disposable);
+
+	// 关闭所有包含shadercross_resultDissambly名称的编辑器窗口，以免锁定了焦点
+	vscode.window.visibleTextEditors.forEach(editor => {
+		if (editor.document.uri.toString().toLowerCase().includes(getShaderCrossResultDissamblyName().toLowerCase())) {
+			// 使用hideTextDocument方法关闭编辑器窗口
+			vscode.commands.executeCommand('workbench.action.closeActiveEditor', editor.document.uri);
+		}
+	});
 }
 
 
