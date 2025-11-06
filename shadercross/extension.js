@@ -360,6 +360,34 @@ class ShaderCrossViewProvider {
 		}
 	}
 
+	trimPreprocessContent(preprocessContent) {
+		if (!preprocessContent) {
+			return '';
+		}
+		
+		// 按行分割内容
+		const lines = preprocessContent.split('\n');
+		const resultLines = [];
+		
+		// 处理每一行
+		for (let line of lines) {
+			// 清除所有以#line开头的行
+			if (line.trim().startsWith('#line')) {
+				continue;
+			}
+			
+			// 处理空行
+			if (line.trim() === '') {
+				continue;
+			} 
+
+			resultLines.push(line);
+		}
+		
+		// 合并处理后的行
+		return resultLines.join('\n');
+	}
+
 	// 编译着色器
 	comileShader_dxc(tmpDir, message, webviewView) {
 	// 获取dxc.exe路径
@@ -532,7 +560,7 @@ class ShaderCrossViewProvider {
 					case 'hlsl-preprocess':
 						// HLSL预处理模式：直接读取预处理结果并打开
 						try {
-							const preprocessContent = fs.readFileSync(outputCompiledPath, 'utf8');
+							const preprocessContent = this.trimPreprocessContent(fs.readFileSync(outputCompiledPath, 'utf8'));
 							this.showResultDissambly(tmpDir, preprocessContent, null);
 						} catch (readWriteError) {
 							this.log('error', `Read HLSL Preprocess Result Failed: ${readWriteError.message}`);
@@ -739,7 +767,7 @@ class ShaderCrossViewProvider {
 					// HLSL预处理模式：直接读取预处理结果并打开
 					try {
 						// 读取预处理后的文件内容
-						const preprocessContent = fs.readFileSync(outputCompiledPath, 'utf8');
+						const preprocessContent = this.trimPreprocessContent(fs.readFileSync(outputCompiledPath, 'utf8'));
 						this.showResultDissambly(tmpDir, preprocessContent, null);
 					} catch (readWriteError) {
 						this.log('error', `Read HLSL Preprocess Result Failed: ${readWriteError.message}`);
