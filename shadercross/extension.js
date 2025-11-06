@@ -128,8 +128,12 @@ class ShaderCrossViewProvider {
 				includePaths: Array.isArray(config.includePaths) ? config.includePaths.filter(p => p && p.trim()) : []
 			};
 			
-			// 使用VS Code的全局状态存储
-			this.context.globalState.update(this.configurationKey, configurationToSave);
+			// 优先保存到工作区状态，如果存在工作区则保存到工作区，否则保存到全局状态
+			if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+				this.context.workspaceState.update(this.configurationKey, configurationToSave);
+			} else {
+				this.context.globalState.update(this.configurationKey, configurationToSave);
+			}
 		} catch (error) {
 			this.log('error', `Failed to save configuration: ${error.message}`);
 		}
@@ -138,7 +142,13 @@ class ShaderCrossViewProvider {
 	// 从VS Code存储获取保存的配置
 	getSavedConfiguration() {
 			try {
-				const savedConfig = this.context.globalState.get(this.configurationKey);
+				let savedConfig = null;
+				if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+					savedConfig = this.context.workspaceState.get(this.configurationKey);
+				} else {
+					savedConfig = this.context.globalState.get(this.configurationKey);
+				}
+				
 				if (savedConfig) {
 					// 确保返回的配置对象具有所有必要的字段，避免UI错误
 					return {
