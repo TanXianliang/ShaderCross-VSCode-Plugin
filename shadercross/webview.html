@@ -642,6 +642,15 @@
 
 		// 编译按钮点击事件
 		document.getElementById('compile-shader-button').addEventListener('click', function() {
+			const compileButton = this;
+			// 保存原始文本
+			const originalText = compileButton.textContent;
+			
+			// 更改按钮状态为正在编译
+			compileButton.textContent = 'Building';
+			compileButton.disabled = true;
+			compileButton.style.backgroundColor = 'var(--text-muted)';
+			
 			// 获取所有编译参数
 			const compilerSelect = document.querySelector('.compiler-select');
 			const shaderTypeSelect = document.querySelector('.shader-type-select');
@@ -660,20 +669,49 @@
 			const includePathItems = document.querySelectorAll('.include-path-item .include-path-value');
 			const includePaths = Array.from(includePathItems).map(item => item.textContent.trim());
 			
-			// 发送编译命令和参数
-			vscode.postMessage({
-				command: 'compileShader',
-				shaderLanguage: shaderLanguageSelect.value,
-				compiler: compilerSelect.value,
-				shaderType: shaderTypeSelect.value,
-				shaderMode: shaderModeSelect.value,
-				outputType: outputTypeSelect.value,
-				entryPoint: entryPointInput.value.trim(),
-				additionalOptionEnabled: additionalOptionCheckbox.checked,
-				additionalOption: additionalOptionInput.value.trim(),
-				shaderLanguage: shaderLanguageSelect.value,
-				macros: macros,
-				includePaths: includePaths
+			// 创建一个Promise来处理编译过程
+			new Promise((resolve) => {
+				// 发送编译命令和参数
+				vscode.postMessage({
+					command: 'compileShader',
+					shaderLanguage: shaderLanguageSelect.value,
+					compiler: compilerSelect.value,
+					shaderType: shaderTypeSelect.value,
+					shaderMode: shaderModeSelect.value,
+					outputType: outputTypeSelect.value,
+					entryPoint: entryPointInput.value.trim(),
+					additionalOptionEnabled: additionalOptionCheckbox.checked,
+					additionalOption: additionalOptionInput.value.trim(),
+					shaderLanguage: shaderLanguageSelect.value,
+					macros: macros,
+					includePaths: includePaths,
+					// 添加一个唯一标识符用于识别编译完成
+					compileId: Date.now()
+				});
+				
+				// 设置一个监听器来等待编译完成
+				const handleCompileComplete = function(event) {
+					const message = event.data;
+					// 检查是否是编译完成的消息
+					if (message.command === 'compileComplete') {
+						window.removeEventListener('message', handleCompileComplete);
+						resolve();
+					}
+				};
+				
+				// 添加消息监听器
+				window.addEventListener('message', handleCompileComplete);
+				
+				// 添加超时处理，以防编译过程出错没有返回结果
+				setTimeout(() => {
+					window.removeEventListener('message', handleCompileComplete);
+					resolve();
+				}, 30000); // 30秒超时
+			}).finally(() => {
+				// 恢复按钮原始状态
+				compileButton.textContent = originalText;
+				compileButton.disabled = false;
+				compileButton.style.backgroundColor = 'var(--accent-color)';
 			});
 		});
 		
