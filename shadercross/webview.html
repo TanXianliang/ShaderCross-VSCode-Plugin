@@ -706,7 +706,7 @@
 				setTimeout(() => {
 					window.removeEventListener('message', handleCompileComplete);
 					resolve();
-				}, 30000); // 30秒超时
+				}, 300000); // 300秒超时
 			}).finally(() => {
 				// 恢复按钮原始状态
 				compileButton.textContent = originalText;

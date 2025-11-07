@@ -41,6 +41,14 @@ class ShaderCrossViewProvider {
 							message,
 							webviewView
 						);
+
+						// 发送编译完成消息
+						if (webviewView && webviewView.webview) {
+							webviewView.webview.postMessage({
+								command: 'compileComplete'
+							});
+						}
+
 						// 保存配置
 						this.saveConfiguration(message);
 						return;
@@ -1035,12 +1043,6 @@ class ShaderCrossViewProvider {
 				} catch (mkdirError) {
 					vscode.window.showErrorMessage(`无法创建临时输出目录: ${mkdirError.message}`);
 					this.log('error', `Failed to create temporary output directory: ${mkdirError.message}`);
-					// 发送编译完成消息
-					if (webviewView && webviewView.webview) {
-						webviewView.webview.postMessage({
-							command: 'compileComplete'
-						});
-					}
 					return;
 				}
 			}
@@ -1050,12 +1052,6 @@ class ShaderCrossViewProvider {
 			if (activeEditor && activeEditor.document.fileName.endsWith(this.getResultDissamblyFileName())) {
 				vscode.window.showWarningMessage(`请选择有效的 Shader 文件，当前窗口为 ${this.getResultDissamblyFileName()}`);
 				this.log('warning', `Please select a valid Shader file, current window is ${this.getResultDissamblyFileName()}`);
-				// 发送编译完成消息
-				if (webviewView && webviewView.webview) {
-					webviewView.webview.postMessage({
-						command: 'compileComplete'
-					});
-				}
 				return;
 			}
 
@@ -1072,23 +1068,11 @@ class ShaderCrossViewProvider {
 					break;
 				default:
 					vscode.window.showErrorMessage(`使用非法的编译器: ${message.compiler}`);
-					// 发送编译完成消息
-					if (webviewView && webviewView.webview) {
-						webviewView.webview.postMessage({
-							command: 'compileComplete'
-						});
-					}
 					return;
 			}
 		} catch (error) {
 			vscode.window.showErrorMessage(`编译失败: ${error.message}`);
 		} finally {
-			// 确保编译完成后发送消息，恢复按钮状态
-			if (webviewView && webviewView.webview) {
-				webviewView.webview.postMessage({
-					command: 'compileComplete'
-				});
-			}
 		}
 	}
 
