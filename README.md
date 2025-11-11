@@ -56,7 +56,7 @@ ShaderCross插件提供了一个直观的侧边栏界面，通过VSCode的活动
 ### 环境初始化
 
 1. **安装Node.js**：
-   - 访问[Node.js官方下载页面](https://nodejs.cn/download/)
+   - 访问[Node.js官方下载页面](https://nodejs.org/zh-cn/download)
    - 下载并安装Node.js（推荐v18或更高版本）
    - 安装完成后，通过命令行验证安装：
      ```bash
