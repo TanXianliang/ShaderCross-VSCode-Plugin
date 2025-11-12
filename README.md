@@ -36,7 +36,7 @@ ShaderCross插件提供了一个直观的侧边栏界面，通过VSCode的活动
 ## 安装VSIX文件
 
 ### 方法一：从VSIX文件安装
-1. 下载shadercross-*.vsix文件，可以直接从Github Releases页面下载最新版本
+1. 下载shadercross-*.vsix文件，可以直接从[ShaderCross-VSCode-Plugin Releases](https://github.com/TanXianliang/ShaderCross-VSCode-Plugin/releases)页面下载最新版本
 2. 在VSCode中，点击扩展图标（侧边栏中的方块图标）
 3. 点击扩展面板右上角的省略号（...）图标
 4. 选择"从VSIX安装..."
