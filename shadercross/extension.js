@@ -726,7 +726,7 @@ class ShaderCrossViewProvider {
 			args.push(`/P ${outputCompiledPath}`);
 		}
 
-		args.push(shaderFilePath); // 添加输入文件路径
+		args.push(`${shaderFilePath}`); // 添加输入文件路径	
 
 		const argCmd = args.join(' ');
 
@@ -740,20 +740,39 @@ class ShaderCrossViewProvider {
 		try {
 			// 记录编译开始时间
 			const startTime = Date.now();
-			// 使用spawnSync代替execSync，以便分别捕获stdout和stderr
-			const result = spawnSync(`"${fxcPath}"`, argCmd.split(' '), { 
+			// 注意：execSync和spawnSync的主要区别在于参数传递方式
+			// execSync: 接收一个完整的命令字符串，会通过shell执行，支持路径中的空格（用引号包围）
+			// spawnSync: 接收命令和参数数组，不通过shell执行，需要特殊处理路径中的空格
+			
+			// 方式1：继续使用execSync（当前正常工作的方式）
+			/*
+			const result = execSync(`"${fxcPath}" ${argCmd}`, {
 				encoding: 'utf8',
 				maxBuffer: 10 * 1024 * 1024
 			});
 			const elapsed = ((Date.now() - startTime) / 1000).toFixed(4);
+			*/
+			
+			
+			// 方式2：使用spawnSync实现，添加cwd参数解决工作目录问题
+			// 获取当前活动文档所在的目录作为工作目录
+			const activeEditor = vscode.window.activeTextEditor;
+			const cwd = activeEditor && activeEditor.document.uri.fsPath ? 
+				path.dirname(activeEditor.document.uri.fsPath) : 
+				process.cwd();
+			
+			const result = spawnSync(fxcPath, argCmd.split(' '), {
+				encoding: 'utf8',
+				maxBuffer: 10 * 1024 * 1024,
+				cwd: cwd  // 设置工作目录，解决fxc编译器的搜索目录错误
+			});		
+			const elapsed = ((Date.now() - startTime) / 1000).toFixed(4);
 
-			// 检查是否有警告信息（警告通常输出到stderr）
 			const stderr = result.stderr || '';
-
 			if (result.status !== 0) {
 				throw new Error(`Shader Compilation Failed:\n${stderr.trim()}`);
 			}
-
+			
 			// 检查是否包含警告信息
 			if (stderr.toLowerCase().includes('warning')) {
 				// 提取并输出警告信息
