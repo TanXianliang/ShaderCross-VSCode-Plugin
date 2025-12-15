@@ -31,6 +31,14 @@ class ShaderCrossViewProvider {
 			retainContextWhenHidden: true
 		};
 
+		// 读取package.json获取版本号
+		const packageJsonPath = path.join(this.context.extensionPath, 'package.json');
+		const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+		const version = packageJson.version;
+
+		// 设置视图标题，包含版本号
+		webviewView.title = `v${version}`;
+
 		// 设置webview内容
 		webviewView.webview.html = this.getWebviewContent(webviewView);
 
