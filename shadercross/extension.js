@@ -18,6 +18,8 @@ class ShaderCrossViewProvider {
 		this.context = context;
 		// 初始化配置存储
 		this.configurationKey = 'shaderCross.lastUsedSettings';
+		// 维护最新配置副本
+		this.currentConfig = this.getSavedConfiguration() || this.getDefaultConfig();
 		// 直接使用context.globalState
 	}
 
@@ -52,19 +54,21 @@ class ShaderCrossViewProvider {
 						// 保存配置
 						this.saveConfiguration(message);
 						return;
-					case 'openIncludeFloderDialg':
-						this.openIncludeFloderDialg(webviewView);
-						return;
-					case 'saveConfiguration':
-						this.saveConfiguration(message.config);
-						return;
+				case 'saveConfiguration':
+				// 更新当前配置副本
+				this.currentConfig = message.config;
+				this.saveConfiguration(message.config);
+				return;
+				case 'openIncludeFloderDialg':
+					this.openIncludeFloderDialg(webviewView);
+					return;
 				}
 			},
 			undefined,
 			this.context.subscriptions
 		);
 
-		// 视图显示后发送保存的配置
+		// 视图可见性变化处理
 		webviewView.onDidChangeVisibility(() => {
 			if (webviewView.visible) {
 				const savedConfig = this.getSavedConfiguration();
@@ -73,20 +77,39 @@ class ShaderCrossViewProvider {
 						command: 'restoreConfiguration',
 						config: savedConfig
 					});
+					// 更新当前配置副本
+					this.currentConfig = savedConfig;
 				}
+			} else {
+				// 当webview失去可见性时（包括切换到别的插件），直接保存配置
+				console.log('Webview became invisible, saving configuration...');
+				// 如果currentConfig为null，尝试从存储获取或使用默认配置
+				if (!this.currentConfig) {
+					this.currentConfig = this.getSavedConfiguration() || this.getDefaultConfig();
+				}
+				this.saveConfiguration(this.currentConfig);
 			}
 		});
 		
 		// 立即尝试发送配置
 		if (webviewView.visible) {
-			const savedConfig = this.getSavedConfiguration();
-			if (savedConfig) {
-				webviewView.webview.postMessage({
-					command: 'restoreConfiguration',
-					config: savedConfig
-				});
-			}
+			const savedConfig = this.getSavedConfiguration() || this.getDefaultConfig();
+			// 更新当前配置副本
+			this.currentConfig = savedConfig;
+			webviewView.webview.postMessage({
+				command: 'restoreConfiguration',
+				config: savedConfig
+			});
 		}
+		
+		// 添加视图销毁前的事件处理
+		webviewView.onDidDispose(() => {
+			// 在webview删除前直接保存配置
+			console.log('Webview is disposing, saving configuration...');
+			if (this.currentConfig) {
+				this.saveConfiguration(this.currentConfig);
+			}
+		}, undefined, this.context.subscriptions);
 	}
 
 	log(level, message) {
@@ -126,19 +149,27 @@ class ShaderCrossViewProvider {
 
 	// 保存配置到VS Code存储
 	saveConfiguration(config) {
+		// 如果没有提供配置且当前配置为空，则不保存
+		if (!config && !this.currentConfig) {
+			return;
+		}
+		
+		// 使用提供的配置或当前配置副本
+		const configToSave = config || this.currentConfig;
+		
 		try {
 			// 清理和验证配置数据，移除空值和无效数据
 			const configurationToSave = {
-				compiler: config.compiler || '',
-				shaderType: config.shaderType || '',
-				shaderMode: config.shaderMode || '',
-				outputType: config.outputType || '',
-				entryPoint: config.entryPoint || '',
-				additionalOptionEnabled: !!config.additionalOptionEnabled,
-				additionalOption: config.additionalOption || '',
-				shaderLanguage: config.shaderLanguage || '',
-				macros: Array.isArray(config.macros) ? config.macros.filter(m => m && m.trim()) : [],
-				includePaths: Array.isArray(config.includePaths) ? config.includePaths.filter(p => p && p.trim()) : []
+				compiler: configToSave.compiler || '',
+				shaderType: configToSave.shaderType || '',
+				shaderMode: configToSave.shaderMode || '',
+				outputType: configToSave.outputType || '',
+				entryPoint: configToSave.entryPoint || '',
+				additionalOptionEnabled: !!configToSave.additionalOptionEnabled,
+				additionalOption: configToSave.additionalOption || '',
+				shaderLanguage: configToSave.shaderLanguage || '',
+				macros: Array.isArray(configToSave.macros) ? configToSave.macros.filter(m => m && m.trim()) : [],
+				includePaths: Array.isArray(configToSave.includePaths) ? configToSave.includePaths.filter(p => p && p.trim()) : []
 			};
 			
 			// 优先保存到工作区状态，如果存在工作区则保存到工作区，否则保存到全局状态
@@ -152,6 +183,22 @@ class ShaderCrossViewProvider {
 		}
 	}
 
+	// 获取默认配置
+	getDefaultConfig() {
+		return {
+			compiler: '',
+			shaderType: '',
+			shaderMode: '',
+			outputType: '',
+			entryPoint: '',
+			additionalOptionEnabled: false,
+			additionalOption: '',
+			shaderLanguage: '',
+			macros: [],
+			includePaths: []
+		};
+	}
+	
 	// 从VS Code存储获取保存的配置
 	getSavedConfiguration() {
 			try {
@@ -1173,6 +1220,17 @@ function activate(context) {
 	});
 
 	context.subscriptions.push(disposable);
+
+	// 监听活动视图容器变化，确保切换到别的插件时触发存盘
+	const activeViewColumnListener = vscode.window.onDidChangeActiveTextEditor(() => {
+		// 当活动编辑器变化时，检查当前视图是否可见
+		// 如果不可见，确保配置已经保存
+		// 注意：这里不需要直接发送保存命令，因为onDidChangeVisibility事件已经会处理
+		// 但是可以在这里添加额外的日志或调试信息
+		console.log('Active editor changed, configuration save handled by onDidChangeVisibility');
+	});
+
+	context.subscriptions.push(activeViewColumnListener);
 }
 
 

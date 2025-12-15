@@ -440,25 +440,18 @@
 				}
 			});
 			
-			// 添加失去焦点事件以恢复占位符并保存配置
-			macroValueEl.addEventListener('blur', function() {
-				updatePlaceholder();
-				// 失焦后保存配置
-				saveCurrentConfiguration();
-			});
-			
-			// 添加键盘事件，支持Enter保存
-			macroValueEl.addEventListener('keydown', function(event) {
-				if (event.key === 'Enter') {
-					event.preventDefault();
-					macroValueEl.blur();
-					// Enter后保存配置
-					saveCurrentConfiguration();
-				} else if (event.key === 'Escape') {
-					event.preventDefault();
-					macroValueEl.blur();
-				}
-			});
+			// 添加失去焦点事件以恢复占位符
+							macroValueEl.addEventListener('blur', function() {
+								updatePlaceholder();
+							});
+							 
+							// 添加键盘事件
+							macroValueEl.addEventListener('keydown', function(event) {
+								if (event.key === 'Enter' || event.key === 'Escape') {
+									event.preventDefault();
+									macroValueEl.blur();
+								}
+							});
 			
 			// 使元素可编辑
 			macroValueEl.contentEditable = true;
@@ -473,12 +466,10 @@
 			removeButton.style.padding = '4px';
 			removeButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
 
-			// 添加删除事件并保存配置
-			removeButton.addEventListener('click', function() {
-				macroItem.remove();
-				// 删除后保存配置
-				saveCurrentConfiguration();
-			});
+			// 添加删除事件
+							removeButton.addEventListener('click', function() {
+								macroItem.remove();
+							});
 			
 			// 添加到列表
 			macroItem.appendChild(macroValueEl);
@@ -487,8 +478,6 @@
 			
 			// 自动聚焦到新创建的宏项
 			macroValueEl.click();
-			// 添加新宏项后保存配置
-			saveCurrentConfiguration();
 		});
 		
 		// 为现有删除按钮添加点击事件
@@ -622,8 +611,7 @@
 			ensureValidSelection(shaderLanguageSelect);
 			ensureValidSelection(shaderTypeSelect);
 
-			// 保存配置
-			saveCurrentConfiguration();
+			// 移除了初始化后的自动保存逻辑
 		}
 
 		// 确保选择框选中的是有效的选项，如果不是则选择第一个可用选项
@@ -761,21 +749,21 @@
 				// 添加删除事件
 				removeButton.addEventListener('click', function() {
 					includePathItem.remove();
-					// 删除后保存配置
-					saveCurrentConfiguration();
 				});
 				
 				// 添加到列表
 				includePathItem.appendChild(includePathValueEl);
 				includePathItem.appendChild(removeButton);
 				document.querySelector('.include-path-list').appendChild(includePathItem);
-				// 添加后保存配置
-				saveCurrentConfiguration();
+				// 移除了添加后保存配置的逻辑
 			} else if (message.command === 'compileResult' && message.result) {
 				// TODO
 			} else if (message.command === 'restoreConfiguration' && message.config) {
 				// 恢复保存的配置
 				restoreConfiguration(message.config);
+			} else if (message.command === 'saveConfigurationOnBlur') {
+				// 失去焦点时保存配置
+				saveCurrentConfiguration();
 			}
 		});
 
@@ -833,9 +821,8 @@
 						}
 
 						macroValueEl.addEventListener('blur', function() {
-							updatePlaceholder();
-							saveCurrentConfiguration();
-						});
+									updatePlaceholder();
+								});
 
 						const removeButton = document.createElement('button');
 						removeButton.className = 'remove-macro-button';
@@ -846,9 +833,8 @@
 						removeButton.style.padding = '4px';
 						removeButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
 						removeButton.addEventListener('click', function() {
-							macroItem.remove();
-							saveCurrentConfiguration();
-						});
+									macroItem.remove();
+								});
 
 						macroItem.appendChild(macroValueEl);
 						macroItem.appendChild(removeButton);
@@ -893,7 +879,6 @@
 						removeButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
 						removeButton.addEventListener('click', function() {
 							includePathItem.remove();
-							saveCurrentConfiguration();
 						});
 
 						includePathItem.appendChild(includePathValueEl);
@@ -950,25 +935,70 @@
 			});
 		}
 
-		// 为所有选择框和输入框添加变更事件，自动保存配置
-		document.querySelectorAll('select, input[type="text"], input[type="checkbox"]').forEach(element => {
-			element.addEventListener('change', saveCurrentConfiguration);
-		});
+		// 移除了所有自动保存的变更事件监听器
+
+		// 为所有配置控件添加事件监听器
+		function addConfigChangeListeners() {
+			// 编译器选择器
+			document.querySelector('.compiler-select').addEventListener('change', saveCurrentConfiguration);
+			// 着色器类型选择器
+			document.querySelector('.shader-type-select').addEventListener('change', saveCurrentConfiguration);
+			// 着色器模式选择器
+			document.querySelector('.shader-mode-select').addEventListener('change', saveCurrentConfiguration);
+			// 输出类型选择器
+			document.querySelector('.output-type-select').addEventListener('change', saveCurrentConfiguration);
+			// 入口点输入框
+			document.querySelector('.entry-point-input').addEventListener('change', saveCurrentConfiguration);
+			// 附加选项复选框
+			document.querySelector('.additional-option-checkbox').addEventListener('change', saveCurrentConfiguration);
+			// 附加选项输入框
+			document.querySelector('.additional-option-input').addEventListener('change', saveCurrentConfiguration);
+			// 着色器语言选择器
+			document.querySelector('.shader-language-select').addEventListener('change', saveCurrentConfiguration);
+
+			// 宏定义相关事件
+			document.querySelector('.add-macro-button').addEventListener('click', function() {
+				// 等DOM更新完成后保存
+				setTimeout(saveCurrentConfiguration, 0);
+			});
+			// 为所有宏定义删除按钮添加事件
+			document.addEventListener('click', function(e) {
+				if (e.target.classList.contains('remove-macro-button')) {
+					saveCurrentConfiguration();
+				}
+			});
+			// 宏定义内容修改事件
+			document.addEventListener('blur', function(e) {
+				if (e.target.classList.contains('macro-value')) {
+					saveCurrentConfiguration();
+				}
+			});
+
+			// 包含路径相关事件
+			document.querySelector('.add-include-path-button').addEventListener('click', function() {
+				// 等DOM更新完成后保存
+				setTimeout(saveCurrentConfiguration, 0);
+			});
+			// 为所有包含路径删除按钮添加事件
+			document.addEventListener('click', function(e) {
+				if (e.target.classList.contains('remove-include-path-button')) {
+					saveCurrentConfiguration();
+				}
+			});
+			// 包含路径内容修改事件
+			document.addEventListener('blur', function(e) {
+				if (e.target.classList.contains('include-path-value')) {
+					saveCurrentConfiguration();
+				}
+			});
+		}
 
 		// 初始化编译器选择事件处理
 		initCompilerSelectHandler();
 
-		// 修改宏定义添加按钮，添加后保存配置
-		document.querySelector('.add-macro-button').addEventListener('click', function(originalEvent) {
-			// 保存原始的事件处理函数
-			const originalHandler = function() {
-				// 原始逻辑已经在DOMContentLoaded中设置
-				// 这里我们只需要确保在添加后保存配置
-				setTimeout(saveCurrentConfiguration, 100); // 延迟保存，确保DOM更新完成
-			};
-			originalHandler.apply(this, arguments);
-		});
-		
+		// 添加配置变更事件监听器
+		addConfigChangeListeners();
+
 		// 为现有删除按钮添加点击事件
 		document.querySelectorAll('.remove-include-path-button').forEach(button => {
 			button.addEventListener('click', function() {
