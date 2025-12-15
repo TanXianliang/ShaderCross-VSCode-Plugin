@@ -472,6 +472,9 @@ class ShaderCrossViewProvider {
 		switch (message.outputType.toLowerCase()) {
 			case 'dxil':
 				outputFileName = 'output.dxil';
+				if (message.shaderLanguage != 'hlsl2021') {
+					args.push('-HV 2016');
+				}
 				break;
 			case 'hlsl':
 				outputFileName = 'output.hlsl';
