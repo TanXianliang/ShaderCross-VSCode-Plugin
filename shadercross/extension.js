@@ -62,14 +62,14 @@ class ShaderCrossViewProvider {
 						// 保存配置
 						this.saveConfiguration(message);
 						return;
-				case 'saveConfiguration':
-				// 更新当前配置副本
-				this.currentConfig = message.config;
-				this.saveConfiguration(message.config);
-				return;
-				case 'openIncludeFloderDialg':
-					this.openIncludeFloderDialg(webviewView);
-					return;
+					case 'saveConfiguration':
+						// 更新当前配置副本
+						this.currentConfig = message.config;
+						this.saveConfiguration(message.config);
+						return;
+					case 'openIncludeFloderDialg':
+						this.openIncludeFloderDialg(webviewView);
+						return;
 				}
 			},
 			undefined,
