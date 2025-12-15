@@ -42,6 +42,12 @@ class ShaderCrossViewProvider {
 		// 设置webview内容
 		webviewView.webview.html = this.getWebviewContent(webviewView);
 
+		// 发送版本号到webview
+		webviewView.webview.postMessage({
+			command: 'setVersion',
+			version: version
+		});
+
 		// 处理来自webview的消息
 		webviewView.webview.onDidReceiveMessage(
 			(message) => {

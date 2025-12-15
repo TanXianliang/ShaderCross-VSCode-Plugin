@@ -259,8 +259,16 @@
 	</style>
 </head>
 <body>
-	<div class="compiler-header" style="margin-bottom: 16px; min-width: 200px;">
+	<div class="compiler-header" style="margin-bottom: 16px; min-width: 200px; display: flex; justify-content: space-between; align-items: center;">
 		<div class="header-title">Compiler Options</div>
+		<button id="menuButton" class="toolbar-button" style="background: none; border: none; color: var(--text-color); cursor: pointer; width: 28px; height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+			≡
+		</button>
+	</div>
+
+	<!-- 弹出菜单 -->
+	<div id="menuPopup" style="display: none; position: fixed; top: 50px; right: 10px; background-color: var(--secondary-bg); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px 0; min-width: 150px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); z-index: 1000;">
+		<div id="versionInfo" style="padding: 8px 16px; color: var(--text-muted); font-size: 12px; cursor: default;">版本号: <span id="versionNumber">0.0.0</span></div>
 	</div>
 	<div class="compiler-options">
 		<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
@@ -1065,6 +1073,43 @@
 				});
 			}
 		});
+
+		// 菜单功能实现
+		(function() {
+			// 获取标题栏中的菜单按钮和弹出菜单
+			const menuButton = document.getElementById('menuButton');
+			const menuPopup = document.getElementById('menuPopup');
+			const versionNumber = document.getElementById('versionNumber');
+
+			// 菜单按钮鼠标悬停效果
+			menuButton.addEventListener('mouseover', function() {
+				this.style.backgroundColor = 'var(--tertiary-bg)';
+			});
+			menuButton.addEventListener('mouseout', function() {
+				this.style.backgroundColor = 'transparent';
+			});
+
+			// 菜单按钮点击事件
+			menuButton.addEventListener('click', function(event) {
+				event.stopPropagation();
+				menuPopup.style.display = menuPopup.style.display === 'none' ? 'block' : 'none';
+			});
+
+			// 点击页面其他地方关闭菜单
+			document.addEventListener('click', function(event) {
+				if (event.target !== menuButton && !menuPopup.contains(event.target)) {
+					menuPopup.style.display = 'none';
+				}
+			});
+
+			// 接收版本信息
+			window.addEventListener('message', function(event) {
+				const message = event.data;
+				if (message.command === 'setVersion') {
+					versionNumber.textContent = message.version;
+				}
+			});
+		})();
 	});
 </script>
 </body>
