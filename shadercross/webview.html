@@ -469,6 +469,7 @@
 			// 添加删除事件
 							removeButton.addEventListener('click', function() {
 								macroItem.remove();
+								saveCurrentConfiguration();
 							});
 			
 			// 添加到列表
@@ -481,11 +482,12 @@
 		});
 		
 		// 为现有删除按钮添加点击事件
-		document.querySelectorAll('.remove-macro-button').forEach(button => {
-			button.addEventListener('click', function() {
-				this.parentElement.remove();
-			});
-		});
+				document.querySelectorAll('.remove-macro-button').forEach(button => {
+					button.addEventListener('click', function() {
+						this.parentElement.remove();
+						saveCurrentConfiguration();
+					});
+				});
 		
 		// 获取VS Code API
 		const vscode = acquireVsCodeApi();
@@ -749,6 +751,7 @@
 				// 添加删除事件
 				removeButton.addEventListener('click', function() {
 					includePathItem.remove();
+					saveCurrentConfiguration();
 				});
 				
 				// 添加到列表
@@ -833,8 +836,9 @@
 						removeButton.style.padding = '4px';
 						removeButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
 						removeButton.addEventListener('click', function() {
-									macroItem.remove();
-								});
+							macroItem.remove();
+							saveCurrentConfiguration();
+						});
 
 						macroItem.appendChild(macroValueEl);
 						macroItem.appendChild(removeButton);
@@ -879,6 +883,7 @@
 						removeButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
 						removeButton.addEventListener('click', function() {
 							includePathItem.remove();
+							saveCurrentConfiguration();
 						});
 
 						includePathItem.appendChild(includePathValueEl);
@@ -973,6 +978,12 @@
 					saveCurrentConfiguration();
 				}
 			});
+			// 宏定义实时修改事件
+			document.addEventListener('input', function(e) {
+				if (e.target.classList.contains('macro-value')) {
+					saveCurrentConfiguration();
+				}
+			});
 
 			// 包含路径相关事件
 			document.querySelector('.add-include-path-button').addEventListener('click', function() {
@@ -987,6 +998,12 @@
 			});
 			// 包含路径内容修改事件
 			document.addEventListener('blur', function(e) {
+				if (e.target.classList.contains('include-path-value')) {
+					saveCurrentConfiguration();
+				}
+			});
+			// 包含路径实时修改事件
+			document.addEventListener('input', function(e) {
 				if (e.target.classList.contains('include-path-value')) {
 					saveCurrentConfiguration();
 				}
@@ -1036,6 +1053,8 @@
 					macroValueEl.style.backgroundColor = 'var(--primary-bg)';
 					macroValueEl.textContent = newValue || currentValue;
 					input.parentNode.replaceChild(macroValueEl, input);
+					// 保存配置
+					saveCurrentConfiguration();
 				});
 				
 				// 按Enter键保存
