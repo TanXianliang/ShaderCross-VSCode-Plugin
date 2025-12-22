@@ -395,7 +395,22 @@
 				</div>
 			</div>
 		</div>
+	</div>
+
+	<div style="height: 1px; background-color: var(--border-color); margin: 16px 0;"></div>
+	<div class="result-header" style="margin-bottom: 16px;">
+		<div class="header-title" style="min-width: 200px;">Result Options</div>
+	</div>
+	<div class="result-options">
+		<div style="display: flex; align-items: center; gap: 12px; margin-top: 16px;">
+			<input type="checkbox" id="showDissamblyCheckbox" class="show-dissambly-checkbox" style="width: 12px; height: 12px; min-width: 12px; min-height: 12px; max-width: 12px; max-height: 12px;">
+			<label for="showDissamblyCheckbox" style="color: var(--text-color); font-size: 14px;">Show ResultDissambly</label>
+		</div>
+	</div>
+	</div>
+		
     <!-- 编译按钮 -->
+	 <div style="height: 1px; background-color: var(--border-color); margin: 16px 0;"></div>
     <div style="margin-top: 24px;">
       <button id="compile-shader-button" style="background-color: var(--accent-color); color: white; border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer; font-size: 14px; width: 100%;">
         Compile Shader
@@ -790,6 +805,10 @@
 			if (config.additionalOptionEnabled !== undefined) document.querySelector('.additional-option-checkbox').checked = config.additionalOptionEnabled;
 			if (config.additionalOption) document.querySelector('.additional-option-input').value = config.additionalOption;
 			if (config.shaderLanguage) document.querySelector('.shader-language-select').value = config.shaderLanguage;
+			if (config.showDissambly !== undefined) {
+				const showDissamblyCheckbox = document.querySelector('.show-dissambly-checkbox');
+				if (showDissamblyCheckbox) showDissamblyCheckbox.checked = config.showDissambly;
+			}
 			
 			// 恢复配置后应用选项限制逻辑
 			updateOptionsByCompiler();
@@ -914,6 +933,7 @@
 			const additionalOptionCheckbox = document.querySelector('.additional-option-checkbox');
 			const additionalOptionInput = document.querySelector('.additional-option-input');
 			const shaderLanguageSelect = document.querySelector('.shader-language-select');
+			const showDissamblyCheckbox = document.querySelector('.show-dissambly-checkbox');
 			
 			// 获取宏定义
 			const macroItems = document.querySelectorAll('.macro-item .macro-value');
@@ -937,6 +957,7 @@
 				additionalOptionEnabled: additionalOptionCheckbox.checked,
 				additionalOption: additionalOptionInput.value.trim(),
 				shaderLanguage: shaderLanguageSelect.value,
+				showDissambly: showDissamblyCheckbox ? showDissamblyCheckbox.checked : false,
 				macros: macros,
 				includePaths: includePaths
 			};
@@ -968,6 +989,11 @@
 			document.querySelector('.additional-option-input').addEventListener('change', saveCurrentConfiguration);
 			// 着色器语言选择器
 			document.querySelector('.shader-language-select').addEventListener('change', saveCurrentConfiguration);
+			// 显示反汇编复选框
+			const showDissamblyCheckbox = document.querySelector('.show-dissambly-checkbox');
+			if (showDissamblyCheckbox) {
+				showDissamblyCheckbox.addEventListener('change', saveCurrentConfiguration);
+			}
 
 			// 宏定义相关事件
 			document.querySelector('.add-macro-button').addEventListener('click', function() {

@@ -183,7 +183,8 @@ class ShaderCrossViewProvider {
 				additionalOption: configToSave.additionalOption || '',
 				shaderLanguage: configToSave.shaderLanguage || '',
 				macros: Array.isArray(configToSave.macros) ? configToSave.macros.filter(m => m && m.trim()) : [],
-				includePaths: Array.isArray(configToSave.includePaths) ? configToSave.includePaths.filter(p => p && p.trim()) : []
+				includePaths: Array.isArray(configToSave.includePaths) ? configToSave.includePaths.filter(p => p && p.trim()) : [],
+				showDissambly: !!configToSave.showDissambly,
 			};
 			
 			// 优先保存到工作区状态，如果存在工作区则保存到工作区，否则保存到全局状态
@@ -209,7 +210,8 @@ class ShaderCrossViewProvider {
 			additionalOption: '',
 			shaderLanguage: '',
 			macros: [],
-			includePaths: []
+			includePaths: [],
+			showDissambly: true,
 		};
 	}
 	
@@ -235,7 +237,8 @@ class ShaderCrossViewProvider {
 						additionalOption: savedConfig.additionalOption || '',
 						shaderLanguage: savedConfig.shaderLanguage || '',
 						macros: Array.isArray(savedConfig.macros) ? savedConfig.macros : [],
-						includePaths: Array.isArray(savedConfig.includePaths) ? savedConfig.includePaths : []
+						includePaths: Array.isArray(savedConfig.includePaths) ? savedConfig.includePaths : [],
+						showDissambly: !!savedConfig.showDissambly,
 					};
 				}
 				return null;
