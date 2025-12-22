@@ -352,7 +352,7 @@ class ShaderCrossViewProvider {
 
 		fs.writeFileSync(resultDissamblyPath, '', 'utf8');
 		
-		if (!existingEditor) {
+		if (this.currentConfig.showDissambly && !existingEditor) {
 			// 创建新的临时文档，指定语言为plaintext，并设置文档名称为shadercross_resultDissambly
 			// 使用虚拟文档显示反编译结果，避免临时文件
 			vscode.workspace.openTextDocument(resultDissamblyPath).then(doc => {
@@ -374,7 +374,7 @@ class ShaderCrossViewProvider {
 					}
 				});
 			});
-		} else {
+		} else if (existingEditor) {
 			// 如果已存在临时文档窗口，则更新其内容
 			existingEditor.edit(edit => {
 				edit.replace(new vscode.Range(0, 0, existingEditor.document.lineCount, 0), resultDissamblyContent);
